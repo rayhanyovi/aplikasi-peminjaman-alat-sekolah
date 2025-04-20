@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getUserRoleFromToken } from "@/lib/helper/authHelper";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -21,18 +22,8 @@ export async function POST(req: Request) {
 
     const token = authHeader.split("Bearer ")[1];
 
-    // Verifikasi token JWT untuk memastikan pengguna adalah superadmin
-    const { data: user, error: authError } = await supabaseAdmin.auth.getUser(
-      token
-    );
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("id", user.user?.id)
-      .single();
-
-    if (authError || !user || profile.role !== "superadmin") {
+    const userRole = await getUserRoleFromToken(token);
+    if (userRole !== "superadmin") {
       return NextResponse.json(
         { message: "Unauthorized: Admin role required" },
         { status: 403 }
