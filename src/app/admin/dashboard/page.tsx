@@ -44,16 +44,7 @@ export default function AdminDashboard() {
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-6">
-        <DashboardCard
-          title="User Management"
-          icon={<ClipboardList size={20} />}
-          stats={[`Total user: ${users?.length || 0}`, "Tambah & hapus user"]}
-          link="/admin/users"
-        />
-      </div>
-
+    <div className="max-w-4xl mx-auto p-6 flex flex-col gap-4">
       <div className="bg-white p-6 rounded-xl shadow-md">
         <h1 className="text-2xl font-semibold mb-1">Welcome, Admin</h1>
         <p className="text-gray-700">Email: {user.email}</p>
@@ -66,8 +57,17 @@ export default function AdminDashboard() {
         </button>
       </div>
 
+      <div className="">
+        <DashboardCard
+          title="User Management"
+          icon={<ClipboardList size={20} />}
+          stats={[`Total user: ${users?.length || 0}`, "Tambah & hapus user"]}
+          link="/admin/users"
+        />
+      </div>
+
       {user.role === "superadmin" && (
-        <div className="bg-white mt-8 p-6 rounded-xl shadow-md">
+        <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-semibold mb-4">Add New User</h2>
           <form onSubmit={handleAddUser} className="space-y-4">
             <div>
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="bg-white mt-8 p-6 rounded-xl shadow-md">
+      <div className="bg-white p-6 rounded-xl shadow-md">
         <h2 className="text-xl font-semibold mb-4">User List</h2>
         {users.length > 0 ? (
           <ul className="space-y-3">
