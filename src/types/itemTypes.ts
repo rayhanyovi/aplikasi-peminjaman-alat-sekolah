@@ -1,3 +1,5 @@
+import { User } from "@supabase/supabase-js";
+
 export interface HistoryEntry {
   borrower: string;
   borrowedDate: string;
@@ -11,10 +13,15 @@ export interface Item {
   name: string;
   code: string;
   image: string;
-  note: string;
   status: string;
-  borrowedBy: string | null;
+  borrowed_by: UserProfile | null;
   history: HistoryEntry[];
 }
 
-export type NewItem = Omit<Item, "id" | "borrowedBy" | "history">;
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export type NewItem = Omit<Item, "id" | "borrowed_by" | "history">;

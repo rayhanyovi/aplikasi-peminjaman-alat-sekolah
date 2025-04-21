@@ -42,6 +42,7 @@ export async function POST(req: Request) {
       email,
       password,
       user_metadata: { role },
+      email_confirm: true,
     });
 
     // Tangani error jika ada

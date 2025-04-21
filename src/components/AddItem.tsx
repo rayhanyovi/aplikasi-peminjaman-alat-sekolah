@@ -21,7 +21,6 @@ export interface ItemFormValues {
   name: string;
   code: string;
   image: string;
-  note: string;
 }
 
 export default function AddItemDialog({
@@ -35,7 +34,6 @@ export default function AddItemDialog({
     name: "",
     code: "",
     image: "",
-    note: "",
   });
 
   useEffect(() => {
@@ -44,14 +42,12 @@ export default function AddItemDialog({
         name: initialData.name,
         code: initialData.code,
         image: initialData.image,
-        note: initialData.note,
       });
     } else {
       setFormValues({
         name: "",
         code: "",
         image: "",
-        note: "",
       });
     }
   }, [initialData, open]);
@@ -97,15 +93,6 @@ export default function AddItemDialog({
               name="image"
               fullWidth
               value={formValues.image}
-              onChange={handleChange}
-            />
-            <TextField
-              label="Catatan"
-              name="note"
-              fullWidth
-              multiline
-              rows={3}
-              value={formValues.note}
               onChange={handleChange}
             />
           </Stack>

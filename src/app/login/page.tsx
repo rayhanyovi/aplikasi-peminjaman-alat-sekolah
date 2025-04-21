@@ -41,7 +41,7 @@ export default function Login() {
       }
 
       // Redirect ke halaman berdasarkan role
-      if (profile.role === "student") {
+      if (profile.role === "siswa") {
         router.push("/student/dashboard");
       } else if (profile.role === "admin" || profile.role === "superadmin") {
         router.push("/admin/dashboard");

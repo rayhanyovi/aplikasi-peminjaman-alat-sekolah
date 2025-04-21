@@ -22,6 +22,13 @@ import AddItemDialog, { ItemFormValues } from "@/components/AddItem";
 import { Item } from "@/types/itemTypes";
 import { addItem, fetchItems, updateItem } from "@/lib/handler/itemHandler";
 import { useUserContext } from "@/context/userContext";
+import {
+  ApproveLoan,
+  RejectLoan,
+  RequestLoan,
+  ReturnLoan,
+} from "@/lib/handler/loanHandler";
+import LoanRejectionDialog from "@/components/LoanRejectionDialog";
 
 export default function ItemManagementPage() {
   const { user } = useUserContext();
@@ -30,15 +37,15 @@ export default function ItemManagementPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [itemDetailsDialog, setItemDetailsDialog] = useState(false);
   const [openReturnDialog, setOpenReturnDialog] = useState(false);
+  const [openRejectLoanDialog, setOpenRejectLoanDialog] = useState(false);
   const [openAddItemDialog, setOpenAddItemDialog] = useState(false);
-  const [openEditItemDialog, setOpenEditItemDialog] = useState(false);
   const [itemToReturn, setItemToReturn] = useState<any>(null);
 
   useEffect(() => {
     const fetchAllItems = async () => {
       const response = await fetchItems();
       setItems(response);
-      setLoading(false); // Set loading selesai setelah data tersedia
+      setLoading(false);
     };
 
     fetchAllItems();
@@ -54,22 +61,19 @@ export default function ItemManagementPage() {
     setItemToReturn(null);
   };
 
+  const handleCloseRejectionDialog = () => {
+    setOpenRejectLoanDialog(false);
+    setItemToReturn(null);
+  };
+
   const handleOpenItemDetailsDialog = (item: Item) => {
     setSelectedItem(item);
     setItemDetailsDialog(true);
   };
 
   const handleCloseItemDetailsDialog = () => {
-    setItemDetailsDialog(false);
     setSelectedItem(null);
-  };
-
-  const handleEditItem = async (values: ItemFormValues) => {
-    try {
-      await updateItem(selectedItem.id, { ...values, status: "tersedia" });
-    } catch (err) {
-      console.error(err);
-    }
+    setItemDetailsDialog(false);
   };
 
   const handleAddItem = async (values: ItemFormValues) => {
@@ -80,13 +84,68 @@ export default function ItemManagementPage() {
     }
   };
 
-  const handleReturnSubmit = (itemId: number, returnNote: string) => {
-    // TODO: Kirim data ke backend di sini
-    console.log("Barang ID:", itemId);
-    console.log("Catatan pengembalian:", returnNote);
+  const handleReturnSubmit = async (itemId: number, returnNote: string) => {
+    try {
+      const response = await ReturnLoan({
+        itemId: itemId,
+        returnNote: returnNote,
+      });
+      if (response.success) {
+        setItems(
+          items.map((item) => {
+            if (item.id === itemId) {
+              return {
+                ...item,
+                status: "tersedia",
+                borrowed_by: null,
+              };
+            } else {
+              return item;
+            }
+          })
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
     handleCloseReturnDialog();
   };
 
+  const handleApproveSubmit = async (itemId: number) => {
+    try {
+      const response = await ApproveLoan({ itemId: itemId });
+      if (response.success) {
+        setItems(
+          items.map((item) => {
+            if (item.id === itemId) {
+              return {
+                ...item,
+                status: "dipinjam",
+                borrowedBy: response.borrower.name,
+              };
+            } else {
+              return item;
+            }
+          })
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRejectionSubmit = async (
+    itemId: number,
+    rejectionNote: string
+  ) => {
+    const response = await RejectLoan({
+      itemId: itemId,
+      rejectionNote: rejectionNote,
+    });
+
+    setOpenRejectLoanDialog(false);
+  };
   if (loading) {
     return (
       <div className="w-full h-dvh flex items-center justify-center">
@@ -100,7 +159,6 @@ export default function ItemManagementPage() {
       <Box className="flex justify-between items-center mb-4">
         <Typography variant="h4" fontWeight="bold" gutterBottom>
           Manajemen Barangx {user?.role}
-          <p onClick={() => console.log(user)}>xx</p>
         </Typography>
         <Button variant="contained" onClick={() => setOpenAddItemDialog(true)}>
           Tambah Barang
@@ -111,7 +169,6 @@ export default function ItemManagementPage() {
           onSubmit={handleAddItem}
         />
       </Box>
-
       <Box mt={3}>
         <Table className="shadow border-gray-200 border">
           <TableHead>
@@ -120,7 +177,7 @@ export default function ItemManagementPage() {
               <TableCell>Nama</TableCell>
               <TableCell>Kode</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Dipinjam Oleh</TableCell>
+              {user?.role !== "siswa" && <TableCell>Dipinjam Oleh</TableCell>}
               <TableCell>Aksi</TableCell>
             </TableRow>
           </TableHead>
@@ -139,73 +196,112 @@ export default function ItemManagementPage() {
                 <TableCell>
                   <Typography
                     color={
-                      item.status === "dipinjam" ? "error.main" : "success.main"
+                      item.status === "dipinjam"
+                        ? "error.main"
+                        : item.status === "pending"
+                        ? "warning.main"
+                        : "success.main"
                     }
                     fontWeight={500}
                   >
                     {item.status}
                   </Typography>
                 </TableCell>
-                <TableCell>{item.borrowedBy || "-"}</TableCell>
+                {user?.role !== "siswa" && (
+                  <TableCell>{item.borrowed_by?.name || "-"}</TableCell>
+                )}
                 <TableCell>
-                  <Stack direction="column" spacing={1}>
-                    <Stack direction="row" spacing={1}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        className="w-full"
-                        onClick={() => handleOpenItemDetailsDialog(item)}
-                      >
-                        Detail
-                      </Button>
-                      <ItemDetailsDialog
-                        open={itemDetailsDialog}
-                        item={selectedItem}
-                        onClose={handleCloseItemDetailsDialog}
-                        onSubmit={handleReturnSubmit}
-                      />
-                      <Button
-                        variant="contained"
-                        size="small"
-                        className="w-full"
-                        onClick={() => {
-                          setOpenEditItemDialog(true);
-                          setSelectedItem(item);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <AddItemDialog
-                        isEditMode
-                        open={openEditItemDialog}
-                        initialData={item}
-                        onClose={() => setOpenEditItemDialog(false)}
-                        onSubmit={handleEditItem}
-                      />
+                  {user?.role !== "siswa" ? (
+                    <Stack direction="column" spacing={1}>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          className="w-full"
+                          onClick={() => handleOpenItemDetailsDialog(item)}
+                        >
+                          Detail
+                        </Button>
+                      </Stack>
+                      {item.status === "pending" && (
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            className="w-full"
+                            onClick={() => handleApproveSubmit(item.id)}
+                          >
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setOpenRejectLoanDialog(true);
+                            }}
+                          >
+                            Reject
+                          </Button>
+                        </Stack>
+                      )}
+
+                      {item.status === "dipinjam" && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => handleOpenReturnDialog(item)}
+                        >
+                          Pengembalian
+                        </Button>
+                      )}
                     </Stack>
-                    {item.status === "dipinjam" && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        color="error"
-                        onClick={() => handleOpenReturnDialog(item)}
-                      >
-                        Pengembalian
-                      </Button>
-                    )}
-                    <ReturnDialog
-                      open={openReturnDialog}
-                      item={itemToReturn}
-                      onClose={handleCloseReturnDialog}
-                      onSubmit={handleReturnSubmit}
-                    />
-                  </Stack>
+                  ) : (
+                    <>
+                      {item.status !== "dipinjam" && (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="success"
+                          disabled={item.status === "pending"}
+                          onClick={() => RequestLoan({ itemId: item.id })}
+                        >
+                          {item.status === "pending"
+                            ? "Menunggu Approval"
+                            : "Ajukan Peminjaman"}
+                        </Button>
+                      )}
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Box>
+
+      <LoanRejectionDialog
+        open={openRejectLoanDialog}
+        item={selectedItem}
+        onClose={handleCloseRejectionDialog}
+        onSubmit={handleRejectionSubmit}
+      />
+      <ItemDetailsDialog
+        open={itemDetailsDialog}
+        item={selectedItem}
+        onClose={handleCloseItemDetailsDialog}
+      />
+
+      <ReturnDialog
+        open={openReturnDialog}
+        item={itemToReturn}
+        onClose={handleCloseReturnDialog}
+        onSubmit={handleReturnSubmit}
+      />
     </Box>
   );
 }

@@ -7,7 +7,6 @@ const supabase = createClient(
 );
 
 export const getUserRoleFromToken = async (token: string) => {
-  // Mendapatkan data user berdasarkan token
   const {
     data: { user },
     error: userError,
@@ -17,7 +16,6 @@ export const getUserRoleFromToken = async (token: string) => {
     throw new Error("Invalid token or user not found");
   }
 
-  // Mengambil role user dari table profiles
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")

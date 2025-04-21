@@ -6,7 +6,7 @@ type User = {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "siswa";
+  role: "admin" | "superadmin" | "siswa";
 };
 
 type UserContextType = {
@@ -29,7 +29,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
         id: authUser.id,
         name: authUser.name,
         email: authUser.email,
-        role: authUser.role || "student",
+        role: authUser.role || "siswa",
       };
       setUser(newUser);
     }

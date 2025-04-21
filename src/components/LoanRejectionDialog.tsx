@@ -9,33 +9,32 @@ import {
   Button,
 } from "@mui/material";
 import { Item } from "@/types/itemTypes";
-
-interface ReturnDialogProps {
+interface LoanRejectionDialogProps {
   open: boolean;
   item: Item | null;
   onClose: () => void;
-  onSubmit: (itemId: number, returnNote: string) => void;
+  onSubmit: (itemId: number, rejectionNote: string) => void;
 }
 
-export default function ReturnDialog({
+export default function LoanRejectionDialog({
   open,
   item,
   onClose,
   onSubmit,
-}: ReturnDialogProps) {
-  const [returnNote, setReturnNote] = useState("");
+}: LoanRejectionDialogProps) {
+  const [rejectionNote, setRejectionNote] = useState("");
 
   if (!item) return null;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    onSubmit(item.id, returnNote);
-    setReturnNote("");
+    onSubmit(item.id, rejectionNote);
+    setRejectionNote("");
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Pengembalian Barang</DialogTitle>
+      <DialogTitle>Penolakan Peminjaman</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2}>
           <Stack direction="row" spacing={2}>
@@ -48,14 +47,11 @@ export default function ReturnDialog({
               <Typography variant="h6">{item.name}</Typography>
               <Typography>Kode: {item.code}</Typography>
               <Typography>Status: {item.status}</Typography>
-              <Typography>
-                Dipinjam oleh: <strong>{item.borrowed_by?.name}</strong>
-              </Typography>
             </Box>
           </Stack>
 
           <Box component="form" onSubmit={handleSubmit}>
-            <Typography fontWeight="bold">Catatan Pengembalian</Typography>
+            <Typography fontWeight="bold">Alasan Penolakan</Typography>
             <textarea
               style={{
                 width: "100%",
@@ -67,16 +63,17 @@ export default function ReturnDialog({
               }}
               rows={3}
               required
-              value={returnNote}
-              onChange={(e) => setReturnNote(e.target.value)}
+              value={rejectionNote}
+              onChange={(e) => setRejectionNote(e.target.value)}
+              placeholder="Berikan alasan penolakan peminjaman..."
             />
 
             <Stack direction="row" spacing={2} mt={2}>
               <Button variant="outlined" onClick={onClose}>
                 Batal
               </Button>
-              <Button type="submit" variant="contained" color="primary">
-                Simpan Pengembalian
+              <Button type="submit" variant="contained" color="error">
+                Tolak Peminjaman
               </Button>
             </Stack>
           </Box>
