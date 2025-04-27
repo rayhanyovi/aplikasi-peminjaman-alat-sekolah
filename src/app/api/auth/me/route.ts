@@ -1,33 +1,27 @@
-import { supabase } from "@/lib/supabaseClient";
+// app/api/auth/me/route.ts
+import { NextResponse } from "next/server"
+import { getUserFromRequest } from "@/lib/auth"
+import type { ApiResponse, User } from "@/types/api"
 
 export async function GET(req: Request) {
   try {
-    const { data, error } = await supabase.auth.getUser();
+    const user = await getUserFromRequest(req)
 
-    if (error) {
-      return new Response(
-        JSON.stringify({ message: "Error", error: error.message }),
-        { status: 500 }
-      );
-    }
-
-    if (data) {
-      return new Response(
-        JSON.stringify({ message: "User connected", user: data }),
-        { status: 200 }
-      );
-    } else {
-      return new Response(JSON.stringify({ message: "User not found" }), {
-        status: 404,
-      });
-    }
+    return NextResponse.json<ApiResponse<User>>(
+      {
+        success: true,
+        data: user as User,
+        message: "User data retrieved successfully",
+      },
+      { status: 200 },
+    )
   } catch (error: any) {
-    return new Response(
-      JSON.stringify({
-        message: "Error connecting to Supabase",
-        error: error.message,
-      }),
-      { status: 500 }
-    );
+    return NextResponse.json<ApiResponse>(
+      {
+        success: false,
+        error: error.message || "Failed to get user data",
+      },
+      { status: error.message.includes("Unauthorized") ? 401 : 500 },
+    )
   }
 }

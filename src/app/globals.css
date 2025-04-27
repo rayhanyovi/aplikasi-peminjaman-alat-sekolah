@@ -1,10 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 255, 255, 255;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background-color: rgb(var(--background-rgb));
+}
+
+/* Ant Design overrides for minimalist design */
+.ant-btn-primary {
+  background-color: #1677ff;
+}
+
+.ant-menu-light .ant-menu-item-selected {
+  background-color: #f0f5ff;
+}
+
+.ant-menu-light .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: #1677ff;
+}
+
+.ant-tag-blue {
+  color: #1677ff;
+  background: #f0f5ff;
+  border-color: #d4e4ff;
+}
+
+.ant-tag-green {
+  color: #52c41a;
+  background: #f6ffed;
+  border-color: #d9f7be;
+}
+
+.ant-tag-orange {
+  color: #fa8c16;
+  background: #fff7e6;
+  border-color: #ffe7ba;
+}
+
+.ant-tag-red {
+  color: #f5222d;
+  background: #fff1f0;
+  border-color: #ffccc7;
 }

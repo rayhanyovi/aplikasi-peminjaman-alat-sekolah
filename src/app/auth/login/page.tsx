@@ -26,6 +26,7 @@ export default function LoginPage() {
       });
     } catch (error: any) {
       console.error(error);
+      message.error(error?.message || "Login failed");
     } finally {
       setLoading(false);
     }
