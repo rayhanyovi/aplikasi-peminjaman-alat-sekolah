@@ -1,12 +1,19 @@
-export const GetItems = async () =>
-  //   status: string,
-  //   page: number = 1,
-  //   limit: number = 10
-  {
-    const response = await fetch(`/api/items`, {
-      method: "GET",
-      credentials: "include",
-    });
+export const GetItems = async (
+  status?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const params = new URLSearchParams();
 
-    return response.json();
-  };
+  if (status) {
+    params.append("status", status);
+  }
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+
+  const response = await fetch(`/api/items?${params.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  return response.json();
+};

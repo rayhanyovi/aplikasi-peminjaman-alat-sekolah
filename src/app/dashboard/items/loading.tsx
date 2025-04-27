@@ -1,3 +1,5 @@
+import { Skeleton } from "antd";
+
 export default function Loading() {
-  return null
+  return <Skeleton active />;
 }

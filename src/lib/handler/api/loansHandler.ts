@@ -1,17 +1,22 @@
 import getToken from "@/lib/helper/getToken";
 
 export const GetLoans = async (
-  status: string,
+  status?: string,
   page: number = 1,
   limit: number = 10
 ) => {
-  const response = await fetch(
-    `/api/loans?status=${status}&page=${page}&limit=${limit}`,
-    {
-      method: "GET",
-      credentials: "include",
-    }
-  );
+  const params = new URLSearchParams();
+
+  if (status) {
+    params.append("status", status);
+  }
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+
+  const response = await fetch(`/api/loans?${params.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
 
   return response.json();
 };

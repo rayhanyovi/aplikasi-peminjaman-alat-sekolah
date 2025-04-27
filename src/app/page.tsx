@@ -75,8 +75,7 @@ export default function LoginPage() {
             name="password"
             rules={[{ required: true, message: "Please input your password!" }]}
           >
-            <Input
-              type="password"
+            <Input.Password
               prefix={<LockIcon size={16} className="mr-2 text-gray-400" />}
               placeholder="Password"
             />

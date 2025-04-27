@@ -62,7 +62,7 @@ export default function DashboardPage() {
 
   const GetAvailableItems = async () => {
     setIsLoading(true);
-    await GetItems()
+    await GetItems("tersedia")
       .then((v) => setAvailableItems(v.data)) // Ensure the response is the correct type
       .catch((e) => message.error(e))
       .finally(() => setIsLoading(false)); // Fix to set loading state to false when done

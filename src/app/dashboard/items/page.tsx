@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
 import {
   Table,
@@ -11,50 +11,42 @@ import {
   Typography,
   Space,
   Card,
+  message,
 } from "antd";
 import { Plus, Search } from "lucide-react";
 import { items } from "@/dummy-data";
 import Link from "next/link";
+import { getStatusTag } from "@/lib/helper/getStatusTag";
+import { GetItems } from "@/lib/handler/api/itemsHandler";
+import Loading from "./loading";
 
 const { Title } = Typography;
 const { Option } = Select;
 
 export default function ItemsPage() {
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [items, setItems] = useState<any[]>([]);
 
-  // Get unique categories for filter
-  const categories = Array.from(new Set(items.map((item) => item.category)));
+  useEffect(() => {
+    GetAllItems();
+  }, [statusFilter]);
 
-  const getStatusTag = (status: string) => {
-    switch (status) {
-      case "available":
-        return <Tag color="green">Available</Tag>;
-      case "pending":
-        return <Tag color="orange">Pending</Tag>;
-      case "borrowed":
-        return <Tag color="blue">Borrowed</Tag>;
-      default:
-        return <Tag>{status}</Tag>;
-    }
+  const GetAllItems = async () => {
+    setIsLoading(true);
+    await GetItems(statusFilter ?? "", 1, 10)
+      .then((v) => setItems(v.data)) // Ensure the response is the correct type
+      .catch((e) => message.error(e))
+      .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
   };
-
-  // Filter items based on search and filters
   const filteredItems = items.filter((item) => {
-    const matchesSearch = searchText
-      ? item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchText.toLowerCase()) ||
-        item.serialNumber.toLowerCase().includes(searchText.toLowerCase())
-      : true;
-
-    const matchesStatus = statusFilter ? item.status === statusFilter : true;
-    const matchesCategory = categoryFilter
-      ? item.category === categoryFilter
-      : true;
-
-    return matchesSearch && matchesStatus && matchesCategory;
+    if (searchText) {
+      return item.name.toLowerCase().includes(searchText.toLowerCase());
+    } else {
+      return items;
+    }
   });
 
   const columns = [
@@ -66,15 +58,11 @@ export default function ItemsPage() {
         <Link href={`/dashboard/items/${record.id}`}>{text}</Link>
       ),
     },
-    {
-      title: "Category",
-      dataIndex: "category",
-      key: "category",
-    },
+
     {
       title: "Serial Number",
-      dataIndex: "serialNumber",
-      key: "serialNumber",
+      dataIndex: "code",
+      key: "code",
     },
     {
       title: "Status",
@@ -132,27 +120,15 @@ export default function ItemsPage() {
               onChange={(value) => setStatusFilter(value)}
               value={statusFilter}
             >
-              <Option value="available">Available</Option>
+              <Option value="tersedia">Tersedia</Option>
               <Option value="pending">Pending</Option>
-              <Option value="borrowed">Borrowed</Option>
-            </Select>
-            <Select
-              placeholder="Category"
-              allowClear
-              style={{ minWidth: 120 }}
-              onChange={(value) => setCategoryFilter(value)}
-              value={categoryFilter}
-            >
-              {categories.map((category) => (
-                <Option key={category} value={category}>
-                  {category}
-                </Option>
-              ))}
+              <Option value="dipinjam">Dipinjam</Option>
             </Select>
           </div>
         </div>
 
         <Table
+          loading={isLoading}
           columns={columns}
           dataSource={filteredItems}
           rowKey="id"
