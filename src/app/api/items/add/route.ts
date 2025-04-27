@@ -1,58 +1,41 @@
-// Create a new item (superadmin only)
+// app/api/items/add/route.tsx
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import { getUserFromToken } from "@/lib/helper/getUserFromToken";
+import type { ApiResponse } from "@/types/api";
+
 export async function POST(req: Request) {
+  const user = await getUserFromToken(req);
+
   try {
-    // Ensure user is superadmin
-    await requireRole(req, ["superadmin"]);
+    const body = await req.json();
 
-    const { name, code, image }: CreateItemRequest = await req.json();
+    const { name, code, image } = body;
 
+    // Validasi minimal
     if (!name || !code) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Name and code are required",
-        },
-        { status: 400 }
-      );
+      throw new Error("Name and code are required");
     }
 
-    // Check if code already exists
-    const { data: existingItem } = await supabaseAdmin
-      .from("items")
-      .select("id")
-      .eq("code", code)
-      .single();
-
-    if (existingItem) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "An item with this code already exists",
-        },
-        { status: 409 }
-      );
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from("items")
-      .insert({
+    const { data, error } = await supabaseAdmin.from("items").insert([
+      {
         name,
         code,
-        image: image || "",
-        status: "tersedia",
-      })
-      .select()
-      .single();
+        image,
+        status: "tersedia", // Optional karena default, tapi kasih explisit lebih aman
+        borrowed_by: null, // Optional, null by default
+      },
+    ]);
 
     if (error) {
       throw new Error(error.message);
     }
 
-    return NextResponse.json<ApiResponse<Item>>(
+    return NextResponse.json<ApiResponse<any>>(
       {
         success: true,
-        data: data as Item,
-        message: "Item created successfully",
+        data,
+        message: "Item added successfully",
       },
       { status: 201 }
     );
@@ -60,9 +43,9 @@ export async function POST(req: Request) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
-        error: error.message || "Failed to create item",
+        error: error.message || "Failed to add item",
       },
-      { status: error.message.includes("Unauthorized") ? 403 : 500 }
+      { status: error.message.includes("Unauthorized") ? 401 : 500 }
     );
   }
 }

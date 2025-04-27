@@ -30,7 +30,7 @@ export const users = [
     role: "admin",
     email: "david@school.edu",
   },
-]
+];
 
 // Equipment items
 export const items = [
@@ -94,7 +94,7 @@ export const items = [
     addedBy: "2", // Sarah Super
     addedDate: "2023-03-15",
   },
-]
+];
 
 // Borrow requests
 export const requests = [
@@ -146,7 +146,7 @@ export const requests = [
     returnDate: "2023-04-02",
     returnNotes: "Returned in good condition",
   },
-]
+];
 
 // Borrowing history
 export const history = [
@@ -182,34 +182,42 @@ export const history = [
     returnDate: "2023-02-15",
     notes: "Perfect condition",
   },
-]
+  {
+    id: "5",
+    itemId: "5", // Telescope
+    userId: "4", // Mike Student
+    borrowDate: "2023-02-16",
+    returnDate: "2023-02-20",
+    notes: "Perfect conditionz",
+  },
+];
 
 // Helper function to get item by ID
 export function getItemById(id: string) {
-  return items.find((item) => item.id === id)
+  return items.find((item) => item.id === id);
 }
 
 // Helper function to get user by ID
 export function getUserById(id: string) {
-  return users.find((user) => user.id === id)
+  return users.find((user) => user.id === id);
 }
 
 // Helper function to get requests by user ID
 export function getRequestsByUserId(userId: string) {
-  return requests.filter((request) => request.userId === userId)
+  return requests.filter((request) => request.userId === userId);
 }
 
 // Helper function to get requests by item ID
 export function getRequestsByItemId(itemId: string) {
-  return requests.filter((request) => request.itemId === itemId)
+  return requests.filter((request) => request.itemId === itemId);
 }
 
 // Helper function to get history by item ID
 export function getHistoryByItemId(itemId: string) {
-  return history.filter((record) => record.itemId === itemId)
+  return history.filter((record) => record.itemId === itemId);
 }
 
 // Helper function to get history by user ID
 export function getHistoryByUserId(userId: string) {
-  return history.filter((record) => record.userId === userId)
+  return history.filter((record) => record.userId === userId);
 }

@@ -19,20 +19,43 @@ import Link from "next/link";
 import { getStatusTag } from "@/lib/helper/getStatusTag";
 import { GetItems } from "@/lib/handler/api/itemsHandler";
 import Loading from "./loading";
+import { useParams, useRouter } from "next/navigation";
+import ItemDetailModal from "@/components/ItemDetailsModal";
+import AddItemModal from "@/components/AddNewItemModal";
+import "@ant-design/v5-patch-for-react-19";
 
 const { Title } = Typography;
 const { Option } = Select;
 
 export default function ItemsPage() {
+  const params = useParams();
+  const router = useRouter();
+
+  const itemId = params?.id;
+
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+  // const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     GetAllItems();
   }, [statusFilter]);
+
+  const handleOpenModal = (id: string) => {
+    // setIsItemDetailModalOpen(true);
+    router.push(`/dashboard/items/${id}`);
+  };
+
+  const handleCloseModal = () => {
+    // setIsItemDetailModalOpen(false);
+    router.push("/dashboard/items"); // Balikin URL pas modal ditutup
+  };
+
+  const isItemDetailModalOpen = !!itemId; // Kalau ada ID di URL, modal otomatis kebuka
 
   const GetAllItems = async () => {
     setIsLoading(true);
@@ -55,7 +78,7 @@ export default function ItemsPage() {
       dataIndex: "name",
       key: "name",
       render: (text: string, record: any) => (
-        <Link href={`/dashboard/items/${record.id}`}>{text}</Link>
+        <p onClick={() => handleOpenModal(record.id)}>{text}</p>
       ),
     },
 
@@ -95,11 +118,13 @@ export default function ItemsPage() {
           <p className="text-gray-500">Browse and manage school equipment</p>
         </div>
         {user?.role === "superadmin" && (
-          <Link href="/dashboard/items/add">
-            <Button type="primary" icon={<Plus size={16} />}>
-              Add Equipment
-            </Button>
-          </Link>
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsAddItemModalOpen(true)}
+          >
+            Add Equipment
+          </Button>
         )}
       </div>
 
@@ -135,6 +160,14 @@ export default function ItemsPage() {
           pagination={{ pageSize: 10 }}
         />
       </Card>
+
+      <ItemDetailModal
+        open={isItemDetailModalOpen}
+        onClose={handleCloseModal}
+        itemId={itemId?.toString() ?? ""}
+      />
+
+      <AddItemModal open={isAddItemModalOpen} onClose={setIsAddItemModalOpen} />
     </div>
   );
 }

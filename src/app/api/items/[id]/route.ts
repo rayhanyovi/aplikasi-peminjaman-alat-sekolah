@@ -1,168 +1,79 @@
 // app/api/items/[id]/route.ts
-import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/auth"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import type { ApiResponse, Item, UpdateItemRequest } from "@/types/api"
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import type { ApiResponse } from "@/types/api";
+import { getUserFromToken } from "@/lib/helper/getUserFromToken";
 
-// Get a specific item
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const user = await getUserFromToken(req);
+
   try {
-    // Any authenticated user can get an item
-    await requireRole(req, ["admin", "superadmin", "siswa"])
+    const id = params.id;
 
-    const id = params.id
+    // Fetch item detail
+    const { data: item, error: itemError } = await supabaseAdmin
+      .from("items")
+      .select("*")
+      .eq("id", id)
+      .single();
 
-    const { data, error } = await supabaseAdmin.from("items").select("*").eq("id", id).single()
-
-    if (error) {
-      if (error.code === "PGRST116") {
-        return NextResponse.json<ApiResponse>(
-          {
-            success: false,
-            error: "Item not found",
-          },
-          { status: 404 },
-        )
-      }
-      throw new Error(error.message)
+    if (itemError) {
+      throw new Error(itemError.message);
     }
 
-    return NextResponse.json<ApiResponse<Item>>(
+    if (!item) {
+      throw new Error("Item not found");
+    }
+
+    // Fetch loans related to the item, sekalian ambil borrower dari profiles
+    const { data: loans, error: loansError } = await supabaseAdmin
+      .from("loans")
+      .select(
+        `
+        *,
+        borrower:student_id (
+          id,
+          name,
+          email
+        )
+      `
+      )
+      .eq("item_id", id);
+
+    if (loansError) {
+      throw new Error(loansError.message);
+    }
+
+    // Pisahin current_request & history
+    const current_request =
+      loans?.filter((loan) => loan.status === "pending") || [];
+    const history =
+      loans?.filter(
+        (loan) => loan.status !== "pending" && loan.status !== "rejected"
+      ) || [];
+
+    return NextResponse.json<ApiResponse<any>>(
       {
         success: true,
-        data: data as Item,
+        data: {
+          item,
+          current_request,
+          history,
+        },
         message: "Item retrieved successfully",
       },
-      { status: 200 },
-    )
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: error.message || "Failed to get item",
       },
-      { status: error.message.includes("Unauthorized") ? 401 : 500 },
-    )
-  }
-}
-
-// Update an item (superadmin only)
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  try {
-    // Ensure user is superadmin
-    await requireRole(req, ["superadmin"])
-
-    const id = params.id
-    const updates: UpdateItemRequest = await req.json()
-
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "No update data provided",
-        },
-        { status: 400 },
-      )
-    }
-
-    // Check if item exists
-    const { data: existingItem, error: checkError } = await supabaseAdmin
-      .from("items")
-      .select("id")
-      .eq("id", id)
-      .single()
-
-    if (checkError || !existingItem) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Item not found",
-        },
-        { status: 404 },
-      )
-    }
-
-    const { data, error } = await supabaseAdmin.from("items").update(updates).eq("id", id).select().single()
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return NextResponse.json<ApiResponse<Item>>(
-      {
-        success: true,
-        data: data as Item,
-        message: "Item updated successfully",
-      },
-      { status: 200 },
-    )
-  } catch (error: any) {
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: error.message || "Failed to update item",
-      },
-      { status: error.message.includes("Unauthorized") ? 403 : 500 },
-    )
-  }
-}
-
-// Delete an item (superadmin only)
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  try {
-    // Ensure user is superadmin
-    await requireRole(req, ["superadmin"])
-
-    const id = params.id
-
-    // Check if item exists
-    const { data: existingItem, error: checkError } = await supabaseAdmin
-      .from("items")
-      .select("id, status")
-      .eq("id", id)
-      .single()
-
-    if (checkError || !existingItem) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Item not found",
-        },
-        { status: 404 },
-      )
-    }
-
-    // Don't allow deletion of borrowed items
-    if (existingItem.status === "dipinjam") {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Cannot delete an item that is currently borrowed",
-        },
-        { status: 400 },
-      )
-    }
-
-    const { error } = await supabaseAdmin.from("items").delete().eq("id", id)
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return NextResponse.json<ApiResponse>(
-      {
-        success: true,
-        message: "Item deleted successfully",
-      },
-      { status: 200 },
-    )
-  } catch (error: any) {
-    return NextResponse.json<ApiResponse>(
-      {
-        success: false,
-        error: error.message || "Failed to delete item",
-      },
-      { status: error.message.includes("Unauthorized") ? 403 : 500 },
-    )
+      { status: error.message.includes("Unauthorized") ? 401 : 500 }
+    );
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
 import {
@@ -17,15 +17,15 @@ import {
   message,
   Typography,
   Divider,
+  Spin,
+  Image,
 } from "antd";
+import dayjs from "dayjs";
 import { ArrowLeft, Clock } from "lucide-react";
 import Link from "next/link";
-import {
-  getItemById,
-  getUserById,
-  getRequestsByItemId,
-  getHistoryByItemId,
-} from "@/dummy-data";
+import { GetItemDetails } from "@/lib/handler/api/itemsHandler";
+import { HistoryEntry } from "@/types/api";
+import { HistoryRecords } from "@/types/itemTypes";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -38,8 +38,32 @@ export default function ItemDetailPage() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [itemData, setItemData] = useState<any>(null);
 
   const itemId = Array.isArray(id) ? id[0] : id;
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      if (!itemId) return;
+
+      try {
+        const res = await GetItemDetails(itemId);
+        if (res.success) {
+          setItemData(res.data);
+        } else {
+          message.error(res.error || "Failed to fetch item details");
+        }
+      } catch (err) {
+        console.error(err);
+        message.error("Error fetching item details");
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchItem();
+  }, [itemId]);
 
   if (!itemId) {
     return (
@@ -52,11 +76,15 @@ export default function ItemDetailPage() {
     );
   }
 
-  const item = getItemById(itemId);
-  const requests = getRequestsByItemId(itemId);
-  const history = getHistoryByItemId(itemId);
+  if (fetching) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
-  if (!item) {
+  if (!itemData) {
     return (
       <div className="text-center py-10">
         <Title level={4}>Item not found</Title>
@@ -67,7 +95,7 @@ export default function ItemDetailPage() {
     );
   }
 
-  const addedByUser = getUserById(item.addedBy);
+  const { item, current_request, history } = itemData;
 
   const getStatusTag = (status: string) => {
     switch (status) {
@@ -88,12 +116,10 @@ export default function ItemDetailPage() {
 
   const handleSubmitRequest = async (values: any) => {
     setLoading(true);
-    // Simulate API call
     setTimeout(() => {
       message.success("Borrow request submitted successfully");
       setIsModalVisible(false);
       setLoading(false);
-      // Redirect to requests page
       router.push("/dashboard/requests");
     }, 1000);
   };
@@ -109,14 +135,14 @@ export default function ItemDetailPage() {
       </div>
 
       <Card variant="borderless">
+        <Image src={item.image} alt="item" width={200} height={200} />
         <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
           <div>
             <Title level={4}>{item.name}</Title>
             <div className="flex items-center gap-2 mb-2">
-              <Tag>{item.category}</Tag>
               {getStatusTag(item.status)}
             </div>
-            <Text type="secondary">Serial Number: {item.serialNumber}</Text>
+            <Text type="secondary">Serial Number: {item.code}</Text>
           </div>
           {user?.role === "student" && item.status === "available" && (
             <Button type="primary" onClick={handleBorrowRequest}>
@@ -129,13 +155,13 @@ export default function ItemDetailPage() {
 
         <Descriptions title="Equipment Details" layout="vertical" bordered>
           <Descriptions.Item label="Description" span={3}>
-            {item.description}
+            {item.description || "-"}
           </Descriptions.Item>
           <Descriptions.Item label="Added By">
-            {addedByUser?.name || "Unknown"}
+            {item.addedBy || "-"}
           </Descriptions.Item>
           <Descriptions.Item label="Added Date">
-            {item.addedDate}
+            {item.addedDate || "-"}
           </Descriptions.Item>
           <Descriptions.Item label="Status">
             {getStatusTag(item.status)}
@@ -146,7 +172,7 @@ export default function ItemDetailPage() {
           <TabPane
             tab={
               <span className="flex items-center gap-1">
-                <Clock size={16} />
+                <Clock size={16} onClick={() => console.log(itemData)} />
                 Borrowing History
               </span>
             }
@@ -154,41 +180,38 @@ export default function ItemDetailPage() {
           >
             <List
               dataSource={history}
-              renderItem={(record) => {
-                // For students, don't show who borrowed it
-                const borrower =
-                  user?.role === "student" ? null : getUserById(record.userId);
-
-                return (
-                  <List.Item>
-                    <List.Item.Meta
-                      title={
-                        <div className="flex items-center gap-2">
-                          <span>
-                            {borrower
-                              ? `Borrowed by ${borrower.name}`
-                              : "Borrowed"}
-                          </span>
-                        </div>
-                      }
-                      description={
+              renderItem={(record: HistoryRecords) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={
+                      <span onClick={() => console.log(record)}>
+                        Borrowed by {record.borrower.name || "Unknown"}
+                      </span>
+                    }
+                    description={
+                      <div>
                         <div>
-                          <div>
-                            Borrow Date: {record.borrowDate} | Return Date:{" "}
-                            {record.returnDate}
-                          </div>
-                          {record.notes && (
-                            <div className="mt-1">
-                              <Text strong>Notes: </Text>
-                              {record.notes}
-                            </div>
-                          )}
+                          Borrow Date:{" "}
+                          {dayjs(record.approved_at).format(
+                            "dddd, DD MMMM YYYY"
+                          ) || "-"}{" "}
+                          <br />
+                          Return Date:{" "}
+                          {dayjs(record.returned_at).format(
+                            "dddd, DD MMMM YYYY"
+                          ) || "-"}
                         </div>
-                      }
-                    />
-                  </List.Item>
-                );
-              }}
+                        {record.return_note && (
+                          <div className="mt-1">
+                            <Text strong>Notes: </Text>
+                            {record.return_note}
+                          </div>
+                        )}
+                      </div>
+                    }
+                  />
+                </List.Item>
+              )}
               locale={{
                 emptyText: "No borrowing history for this item",
               }}
@@ -206,51 +229,44 @@ export default function ItemDetailPage() {
               key="requests"
             >
               <List
-                dataSource={requests.filter(
-                  (req) => req.status === "pending" || req.status === "approved"
+                dataSource={current_request}
+                renderItem={(request: any) => (
+                  <List.Item
+                    actions={[
+                      <Link
+                        key="review"
+                        href={`/dashboard/requests/${request.id}`}
+                      >
+                        <Button type="link">Review</Button>
+                      </Link>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={
+                        <div className="flex items-center gap-2">
+                          <span>
+                            Request by {request.userName || "Unknown"}
+                          </span>
+                          <Tag
+                            color={
+                              request.status === "pending" ? "orange" : "green"
+                            }
+                          >
+                            {request.status}
+                          </Tag>
+                        </div>
+                      }
+                      description={
+                        <div>
+                          <div>Request Date: {request.requestDate || "-"}</div>
+                          {request.dueDate && (
+                            <div>Due Date: {request.dueDate}</div>
+                          )}
+                        </div>
+                      }
+                    />
+                  </List.Item>
                 )}
-                renderItem={(request) => {
-                  const requester = getUserById(request.userId);
-                  return (
-                    <List.Item
-                      actions={[
-                        <Link
-                          key="review"
-                          href={`/dashboard/requests/${request.id}`}
-                        >
-                          <Button type="link">Review</Button>
-                        </Link>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        title={
-                          <div className="flex items-center gap-2">
-                            <span>
-                              Request by {requester?.name || "Unknown"}
-                            </span>
-                            <Tag
-                              color={
-                                request.status === "pending"
-                                  ? "orange"
-                                  : "green"
-                              }
-                            >
-                              {request.status}
-                            </Tag>
-                          </div>
-                        }
-                        description={
-                          <div>
-                            <div>Request Date: {request.requestDate}</div>
-                            {request.dueDate && (
-                              <div>Due Date: {request.dueDate}</div>
-                            )}
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  );
-                }}
                 locale={{
                   emptyText: "No active requests for this item",
                 }}

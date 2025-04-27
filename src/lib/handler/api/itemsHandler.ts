@@ -17,3 +17,23 @@ export const GetItems = async (
   });
   return response.json();
 };
+
+export const GetItemDetails = async (id: string) => {
+  const response = await fetch(`/api/items/${id}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  return response.json();
+};
+
+export const AddNewItem = async (item: any) => {
+  const response = await fetch(`/api/items/add`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(item),
+    credentials: "include",
+  });
+  return response.json();
+};
