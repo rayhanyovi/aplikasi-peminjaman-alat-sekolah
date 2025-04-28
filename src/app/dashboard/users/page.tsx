@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
 import {
@@ -17,28 +17,44 @@ import {
   message,
 } from "antd";
 import { Plus, Search, Mail, User } from "lucide-react";
-import { users } from "@/dummy-data";
-import { AddUser } from "@/lib/handler/api/userHandler";
+import { AddUser, GetUsers } from "@/lib/handler/api/userHandler";
+import "@ant-design/v5-patch-for-react-19";
 
 const { Title } = Typography;
 const { Option } = Select;
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
 
 export default function UsersPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [searchText, setSearchText] = useState("");
+  const [hasNext, setHasNext] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [nameFilter, setNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if not superadmin
+  useEffect(() => {
+    handleGetUsers();
+  }, [nameFilter, roleFilter, page, limit]);
+
   if (user?.role !== "superadmin") {
     router.push("/dashboard");
     return null;
   }
 
-  // Filter users based on search and filters
   const filteredUsers = users.filter((u) => {
     const matchesSearch = searchText
       ? u.name.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -64,19 +80,42 @@ export default function UsersPage() {
   };
 
   const handleAddUser = async (values: any) => {
-    setLoading(true);
+    setIsLoading(true);
     try {
       const response = await AddUser(values.email, values.role, values.name);
-      console.log(response);
       if (response.success) {
         alert("User added successfully");
+        handleGetUsers();
       }
     } catch (error: any) {
       message.error(error.message || "Error adding user");
     } finally {
       form.resetFields();
       setIsModalVisible(false);
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleGetUsers = async () => {
+    setIsLoading(true);
+    const filters = {
+      ...(nameFilter && { name: nameFilter }),
+      ...(roleFilter && { role: roleFilter }),
+    };
+    try {
+      const response = await GetUsers(page, limit, filters);
+
+      if (response.next) {
+        setHasNext(response.next);
+      }
+      if (response.success) {
+        setUsers(response.data);
+        setTotalUsers(response.count);
+      }
+    } catch (error: any) {
+      message.error(error.message || "Error retrieving users");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -122,6 +161,11 @@ export default function UsersPage() {
     },
   ];
 
+  const handleTableChange = (pagination: any) => {
+    setPage(pagination.current);
+    setLimit(pagination.pageSize);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -163,8 +207,14 @@ export default function UsersPage() {
         <Table
           columns={columns}
           dataSource={filteredUsers}
+          loading={isLoading}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            current: page,
+            pageSize: limit,
+            total: totalUsers,
+          }}
+          onChange={handleTableChange}
         />
       </Card>
 
@@ -227,26 +277,9 @@ export default function UsersPage() {
             </Select>
           </Form.Item>
 
-          {/* <Form.Item
-            name="password"
-            label="Password"
-            rules={[
-              {
-                required: true,
-                message: "Please enter a password",
-              },
-              {
-                min: 6,
-                message: "Password must be at least 6 characters",
-              },
-            ]}
-          >
-            <Input.Password placeholder="Enter password" />
-          </Form.Item> */}
-
           <Form.Item className="mb-0 flex justify-end gap-2">
             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
+            <Button type="primary" htmlType="submit" loading={isLoading}>
               Add User
             </Button>
           </Form.Item>

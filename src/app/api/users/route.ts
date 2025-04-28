@@ -4,11 +4,44 @@ import type { ApiResponse, User } from "@/types/api";
 
 // Get all users (superadmin only)
 export async function GET(req: Request) {
+  const url = new URL(req.url);
+
   try {
-    console.debug("Starting to fetch users from Supabase...");
-    const { data, error } = await supabaseAdmin
+    const role = url.searchParams.get("role");
+    const name = url.searchParams.get("name");
+    const email = url.searchParams.get("email");
+
+    const limitParam = url.searchParams.get("limit") || "10";
+    const pageParam = url.searchParams.get("page") || "1";
+
+    const limit = parseInt(limitParam);
+    const page = parseInt(pageParam);
+
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    const query = supabaseAdmin
       .from("profiles")
-      .select("id, name, email, role, created_at");
+      .select("id, name, email, role, created_at", { count: "exact" })
+      .range(from, to);
+
+    if (role) {
+      query.eq("role", role);
+    }
+
+    if (name) {
+      query.ilike("name", `%${name}%`);
+    }
+
+    if (email) {
+      query.ilike("email", `%${email}%`);
+    }
+
+    const { data, count, error } = await query;
+
+    const totalCount = count || 0;
+    const next = page * limit < totalCount;
+    const prev = page > 1;
 
     if (error) {
       throw new Error(error.message);
@@ -18,8 +51,11 @@ export async function GET(req: Request) {
     return NextResponse.json<ApiResponse<User[]>>(
       {
         success: true,
-        data: data as User[],
         message: "Users retrieved successfully",
+        count: totalCount,
+        next,
+        prev,
+        data: data as User[],
       },
       { status: 200 }
     );

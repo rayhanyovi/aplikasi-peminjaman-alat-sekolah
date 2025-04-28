@@ -54,6 +54,7 @@ export async function GET(req: Request) {
       {
         success: true,
         data: processedItems as Item[],
+        count: totalCount,
         next,
         prev,
         message: "Items retrieved successfully",

@@ -4,6 +4,7 @@ export interface ApiResponse<T = any> {
   data?: T;
   next?: boolean;
   prev?: boolean;
+  count?: number;
   error?: string;
   message?: string;
 }
