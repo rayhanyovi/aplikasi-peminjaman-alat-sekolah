@@ -15,15 +15,18 @@ import {
   Modal,
   Form,
   message,
+  Upload,
+  Spin,
 } from "antd";
 import { Plus, Search, Mail, User } from "lucide-react";
 import { AddUser, GetUsers } from "@/lib/handler/api/userHandler";
 import "@ant-design/v5-patch-for-react-19";
+import { handleCsvUpload } from "@/lib/helper/csvUploadHandler";
 
 const { Title } = Typography;
 const { Option } = Select;
 
-interface User {
+interface UserType {
   id: string;
   name: string;
   email: string;
@@ -41,10 +44,12 @@ export default function UsersPage() {
   const [nameFilter, setNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingCsv, setUploadingCsv] = useState(false);
+  const [csvUsers, setCsvUsers] = useState<any[]>([]); // Store users from CSV with progress status
 
   useEffect(() => {
     handleGetUsers();
@@ -93,6 +98,85 @@ export default function UsersPage() {
       form.resetFields();
       setIsModalVisible(false);
       setIsLoading(false);
+    }
+  };
+
+  const handleAddMultipleUsers = async (file: any) => {
+    setUploadingCsv(true);
+    let users = [];
+
+    try {
+      console.log("Starting CSV upload...");
+      users = await handleCsvUpload(file);
+      console.log("Users after CSV upload:", users);
+
+      if (!users || users.length === 0) {
+        message.error("No valid data found in the file!");
+        setUploadingCsv(false);
+        return;
+      }
+
+      // Add unique IDs to each user for tracking
+      const usersWithIds = users.map((user: any, index) => ({
+        ...user,
+        id: `temp-${index}-${Date.now()}`,
+        status: "Pending", // Initial status
+      }));
+
+      // Initialize csvUsers state with all users in 'Pending' status
+      setCsvUsers(usersWithIds);
+
+      // Process users one by one
+      for (let i = 0; i < usersWithIds.length; i++) {
+        const currentUser = usersWithIds[i];
+
+        // Update status to Processing for current user
+        setCsvUsers((prevUsers) =>
+          prevUsers.map((user: any) =>
+            user.id === currentUser.id
+              ? { ...user, status: "Processing" }
+              : user
+          )
+        );
+
+        // Small delay to ensure UI updates
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        try {
+          // Call API to add user
+          const result = await AddUser(
+            currentUser.email,
+            currentUser.role,
+            currentUser.name
+          );
+
+          // Update status based on result
+          setCsvUsers((prevUsers) =>
+            prevUsers.map((user: any) =>
+              user.id === currentUser.id
+                ? { ...user, status: result.success ? "Success" : "Failed" }
+                : user
+            )
+          );
+        } catch (error: any) {
+          console.error(`Error adding user ${currentUser.name}:`, error);
+
+          // Update status to Failed on error
+          setCsvUsers((prevUsers) =>
+            prevUsers.map((user: any) =>
+              user.id === currentUser.id
+                ? { ...user, status: "Failed", error: error.message }
+                : user
+            )
+          );
+        }
+      }
+
+      message.success(`Processed ${users.length} users from CSV`);
+      handleGetUsers(); // Refresh the user list
+    } catch (error: any) {
+      console.error("Error during CSV upload:", error);
+      message.error(error.message || "Error uploading CSV");
     }
   };
 
@@ -148,6 +232,7 @@ export default function UsersPage() {
       key: "role",
       render: (role: string) => getRoleTag(role),
     },
+
     {
       title: "Action",
       key: "action",
@@ -173,13 +258,29 @@ export default function UsersPage() {
           <Title level={4}>User Management</Title>
           <p className="text-gray-500">Manage users and their access levels</p>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus size={16} />}
-          onClick={() => setIsModalVisible(true)}
-        >
-          Add User
-        </Button>
+        <div className="flex flex-row gap-2">
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            onClick={() => setIsModalVisible(true)}
+          >
+            Add User
+          </Button>
+
+          <Upload
+            name="file"
+            accept=".csv"
+            showUploadList={false}
+            customRequest={({ file, onSuccess }) => {
+              onSuccess?.({}, file); // Menyelesaikan request upload
+              handleAddMultipleUsers(file); // Memanggil fungsi untuk meng-handle file CSV
+            }}
+          >
+            <Button type="primary" ghost loading={isLoading}>
+              Import CSV
+            </Button>
+          </Upload>
+        </div>
       </div>
 
       <Card variant="borderless">
@@ -206,7 +307,7 @@ export default function UsersPage() {
 
         <Table
           columns={columns}
-          dataSource={filteredUsers}
+          dataSource={csvUsers.length > 0 ? csvUsers : filteredUsers} // Show CSV progress or users list
           loading={isLoading}
           rowKey="id"
           pagination={{
@@ -230,60 +331,146 @@ export default function UsersPage() {
           onFinish={handleAddUser}
           initialValues={{ role: "siswa" }}
         >
-          <Form.Item
-            name="name"
-            label="Full Name"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the user's name",
-              },
-            ]}
-          >
-            <Input placeholder="Enter full name" />
+          <Form.Item label="Name" name="name" rules={[{ required: true }]}>
+            <Input placeholder="Enter name" />
           </Form.Item>
 
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the user's email",
-              },
-              {
-                type: "email",
-                message: "Please enter a valid email",
-              },
-            ]}
-          >
-            <Input placeholder="Enter email address" />
+          <Form.Item label="Email" name="email" rules={[{ required: true }]}>
+            <Input placeholder="Enter email" />
           </Form.Item>
 
-          <Form.Item
-            name="role"
-            label="Role"
-            rules={[
-              {
-                required: true,
-                message: "Please select a role",
-              },
-            ]}
-          >
-            <Select placeholder="Select a role">
+          <Form.Item label="Role" name="role" rules={[{ required: true }]}>
+            <Select>
               <Option value="siswa">Student</Option>
               <Option value="admin">Admin</Option>
               <Option value="superadmin">Superadmin</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item className="mb-0 flex justify-end gap-2">
-            <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={isLoading}>
-              Add User
+          <div className="flex justify-end">
+            <Button type="default" onClick={() => setIsModalVisible(false)}>
+              Cancel
             </Button>
-          </Form.Item>
+            <Button
+              className="ml-2"
+              type="primary"
+              htmlType="submit"
+              loading={isLoading}
+            >
+              {isLoading ? "Adding..." : "Add User"}
+            </Button>
+          </div>
         </Form>
+      </Modal>
+      <Modal
+        title="CSV Upload Progress"
+        open={uploadingCsv}
+        onCancel={() => setUploadingCsv(false)}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => setUploadingCsv(false)}
+            type="primary"
+          >
+            Close
+          </Button>,
+        ]}
+        width={650}
+      >
+        <div className="flex flex-col gap-6">
+          {csvUsers.length > 0 ? (
+            <div className="max-h-[460px] overflow-y-auto mt-8 border border-gray-300 px-4 rounded-xl">
+              {csvUsers.map((user: any, index: number) => (
+                <div
+                  key={user.id}
+                  className={`flex justify-between items-center p-4 border-gray-300 rounded-lg ${
+                    index !== 0 ? "border-t" : ""
+                  }`}
+                >
+                  <div className="flex flex-col">
+                    <div className="font-semibold text-lg">{user.name}</div>
+                    <div className="text-sm text-gray-600">{user.email}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {getRoleTag(user.role)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    {user.status === "Pending" && (
+                      <Tag
+                        color="default"
+                        className="flex items-center space-x-1"
+                      >
+                        <i className="fas fa-clock text-sm"></i>
+                        <span>Pending</span>
+                      </Tag>
+                    )}
+                    {user.status === "Processing" && (
+                      <div className="flex items-center space-x-2">
+                        <Spin size="small" className="mr-2" />
+                        <Tag
+                          color="processing"
+                          className="flex items-center space-x-1"
+                        >
+                          <i className="fas fa-spinner animate-spin text-sm"></i>
+                          <span>Processing</span>
+                        </Tag>
+                      </div>
+                    )}
+                    {user.status === "Success" && (
+                      <Tag
+                        color="success"
+                        className="flex items-center space-x-1"
+                      >
+                        <i className="fas fa-check-circle text-sm"></i>
+                        <span>Success</span>
+                      </Tag>
+                    )}
+                    {user.status === "Failed" && (
+                      <div className="flex flex-col items-end space-x-2">
+                        <Tag
+                          color="error"
+                          className="flex items-center space-x-1"
+                        >
+                          <i className="fas fa-times-circle text-sm"></i>
+                          <span>Failed</span>
+                        </Tag>
+                        {user.error && (
+                          <span className="text-xs text-red-500 mt-1 max-w-48 text-right">
+                            {user.error}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center p-6">
+              <Spin size="large" />
+            </div>
+          )}
+
+          {csvUsers.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Total: {csvUsers.length}</span>
+                <span className="text-sm text-gray-600">
+                  Success:{" "}
+                  {csvUsers.filter((u) => u.status === "Success").length} |
+                  Failed: {csvUsers.filter((u) => u.status === "Failed").length}{" "}
+                  | Pending:{" "}
+                  {
+                    csvUsers.filter(
+                      (u) => u.status === "Pending" || u.status === "Processing"
+                    ).length
+                  }
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );
