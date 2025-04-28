@@ -172,7 +172,7 @@ export default function ItemDetailPage() {
           <TabPane
             tab={
               <span className="flex items-center gap-1">
-                <Clock size={16} onClick={() => console.log(itemData)} />
+                <Clock size={16} />
                 Borrowing History
               </span>
             }
@@ -184,7 +184,7 @@ export default function ItemDetailPage() {
                 <List.Item>
                   <List.Item.Meta
                     title={
-                      <span onClick={() => console.log(record)}>
+                      <span>
                         Borrowed by {record.borrower.name || "Unknown"}
                       </span>
                     }

@@ -10,7 +10,6 @@ export async function GET(req: Request) {
       .eq("status", "dipinjam");
 
     if (error) {
-      console.log(error?.message);
       throw new Error(error.message);
     }
 

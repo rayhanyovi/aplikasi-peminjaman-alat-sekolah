@@ -89,7 +89,7 @@ export default function UsersPage() {
     try {
       const response = await AddUser(values.email, values.role, values.name);
       if (response.success) {
-        alert("User added successfully");
+        message.success("User added successfully");
         handleGetUsers();
       }
     } catch (error: any) {
@@ -106,9 +106,7 @@ export default function UsersPage() {
     let users = [];
 
     try {
-      console.log("Starting CSV upload...");
       users = await handleCsvUpload(file);
-      console.log("Users after CSV upload:", users);
 
       if (!users || users.length === 0) {
         message.error("No valid data found in the file!");

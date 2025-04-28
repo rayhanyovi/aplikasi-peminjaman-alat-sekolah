@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { UserSignIn } from "@/lib/handler/api/authHandler";
+import { message } from "antd";
 
 type User = {
   id: string;
@@ -31,32 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check localStorage for saved user and session
   useEffect(() => {
-    console.log("Checking localStorage for saved user...");
     const savedUser = localStorage.getItem("user_spas");
     if (savedUser) {
-      console.log("Found saved user in localStorage:", savedUser);
       setUser(JSON.parse(savedUser));
     } else {
-      console.log("No saved user found in localStorage.");
     }
 
     // Check for saved session
     const savedSession = localStorage.getItem("user_session");
     if (savedSession) {
-      console.log("Found saved session in localStorage:", savedSession);
       const sessionData = JSON.parse(savedSession);
-      console.log("Session data:", sessionData);
 
       // Validate session expiration
       const isSessionExpired = Date.now() / 1000 > sessionData.expires_at;
       if (isSessionExpired) {
-        console.log("Session expired");
+        message.error("Session expired");
         logout(); // Optional: automatically logout if session expired
       } else {
-        console.log("Session is valid");
+        message.error("Session is valid");
       }
     } else {
-      console.log("No saved session found in localStorage.");
+      message.error("No saved session found in localStorage.");
     }
 
     setIsLoading(false);
@@ -87,11 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Logout function
   const logout = () => {
-    console.log("Logging out...");
     setUser(null);
     localStorage.removeItem("user_spas");
     localStorage.removeItem("user_session");
-    console.log("User and session removed from localStorage");
   };
 
   return (

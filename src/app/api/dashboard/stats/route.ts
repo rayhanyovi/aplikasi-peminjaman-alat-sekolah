@@ -10,7 +10,6 @@ export async function GET(req: Request) {
       .select("*", { count: "exact", head: true });
 
     if (itemsError) {
-      console.log(itemsError?.message);
       throw new Error(itemsError.message);
     }
 
@@ -21,7 +20,6 @@ export async function GET(req: Request) {
       .eq("status", "dipinjam");
 
     if (loanError) {
-      console.log(loanError?.message);
       throw new Error(loanError.message);
     }
 
@@ -32,7 +30,6 @@ export async function GET(req: Request) {
       .eq("status", "pending");
 
     if (requestError) {
-      console.log(requestError?.message);
       throw new Error(requestError.message);
     }
 
@@ -42,7 +39,6 @@ export async function GET(req: Request) {
       .select("*", { count: "exact", head: true });
 
     if (userError) {
-      console.log(userError?.message);
       throw new Error(userError.message);
     }
 

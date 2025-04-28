@@ -16,10 +16,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values: { email: string; password: string }) => {
-    console.log(values);
     setLoading(true);
     try {
-      // Pastikan login menangani error dengan lemparkan ke frontend
       await login(values.email, values.password).then(() => {
         message.success(`Logged in as ${values.email}`);
         router.push("/dashboard");
@@ -39,11 +37,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md shadow-md">
         <div className="text-center mb-6">
-          <Title
-            level={1}
-            className="!mb-1 cursor-pointer"
-            onClick={() => console.log(form.getFieldsValue())}
-          >
+          <Title level={1} className="!mb-1 cursor-pointer">
             SPAS
           </Title>
           <p className="text-gray-500">Sistem Peminjaman Alat Sekolah </p>

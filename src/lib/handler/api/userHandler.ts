@@ -27,13 +27,11 @@ export const AddMultipleUser = async (users: any[]) => {
   const results = [];
 
   // Log the users being passed for processing
-  console.log("Users to be added:", users);
 
   // Loop through each user and send them one by one
   for (const user of users) {
     try {
       const payload = { ...user, password: "password1234" };
-      console.log("Sending payload for user:", payload); // Log each user's payload before sending it
 
       const response = await fetch("/api/users/add", {
         method: "POST",
@@ -45,7 +43,6 @@ export const AddMultipleUser = async (users: any[]) => {
       });
 
       const data = await response.json();
-      console.log("Response data:", data); // Log the response from the server
 
       if (!response.ok) {
         const error = new Error(data.error || "Something went wrong");
@@ -59,7 +56,6 @@ export const AddMultipleUser = async (users: any[]) => {
     }
   }
 
-  console.log("Import results:", results); // Log the final results after all users are processed
   return results; // Return an array of responses or success data
 };
 
