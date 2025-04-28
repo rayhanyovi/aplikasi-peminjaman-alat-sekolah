@@ -16,11 +16,6 @@ export default function AddItemModal({ open, onClose }: any) {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
 
-  if (user?.role !== "superadmin") {
-    router.push("/dashboard");
-    return null;
-  }
-
   const handleSubmit = async (values: any) => {
     setIsLoading(true);
     await AddNewItem(values);

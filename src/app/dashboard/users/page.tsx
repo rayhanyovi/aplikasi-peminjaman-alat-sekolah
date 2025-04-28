@@ -18,6 +18,7 @@ import {
 } from "antd";
 import { Plus, Search, Mail, User } from "lucide-react";
 import { users } from "@/dummy-data";
+import { AddUser } from "@/lib/handler/api/userHandler";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -51,8 +52,8 @@ export default function UsersPage() {
 
   const getRoleTag = (role: string) => {
     switch (role) {
-      case "student":
-        return <Tag color="blue">Student</Tag>;
+      case "siswa":
+        return <Tag color="blue">Siswa</Tag>;
       case "admin":
         return <Tag color="green">Admin</Tag>;
       case "superadmin":
@@ -64,13 +65,19 @@ export default function UsersPage() {
 
   const handleAddUser = async (values: any) => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      message.success("User added successfully");
+    try {
+      const response = await AddUser(values.email, values.role, values.name);
+      console.log(response);
+      if (response.success) {
+        alert("User added successfully");
+      }
+    } catch (error: any) {
+      message.error(error.message || "Error adding user");
+    } finally {
+      form.resetFields();
       setIsModalVisible(false);
       setLoading(false);
-      form.resetFields();
-    }, 1000);
+    }
   };
 
   const columns = [
@@ -147,7 +154,7 @@ export default function UsersPage() {
             onChange={(value) => setRoleFilter(value)}
             value={roleFilter}
           >
-            <Option value="student">Student</Option>
+            <Option value="siswa">Student</Option>
             <Option value="admin">Admin</Option>
             <Option value="superadmin">Superadmin</Option>
           </Select>
@@ -171,7 +178,7 @@ export default function UsersPage() {
           form={form}
           layout="vertical"
           onFinish={handleAddUser}
-          initialValues={{ role: "student" }}
+          initialValues={{ role: "siswa" }}
         >
           <Form.Item
             name="name"
@@ -214,13 +221,13 @@ export default function UsersPage() {
             ]}
           >
             <Select placeholder="Select a role">
-              <Option value="student">Student</Option>
+              <Option value="siswa">Student</Option>
               <Option value="admin">Admin</Option>
               <Option value="superadmin">Superadmin</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item
+          {/* <Form.Item
             name="password"
             label="Password"
             rules={[
@@ -235,7 +242,7 @@ export default function UsersPage() {
             ]}
           >
             <Input.Password placeholder="Enter password" />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item className="mb-0 flex justify-end gap-2">
             <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>

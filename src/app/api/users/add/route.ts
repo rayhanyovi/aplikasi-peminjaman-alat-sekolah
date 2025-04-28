@@ -10,21 +10,22 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { name, code, image } = body;
+    const { email, password, role, name } = body;
 
-    if (!name || !code) {
+    if (!email || !password || !role) {
       throw new Error("Name and code are required");
     }
 
-    const { data, error } = await supabaseAdmin.from("items").insert([
-      {
-        name,
-        code,
-        image,
-        status: "tersedia", // Optional karena default, tapi kasih explisit lebih aman
-        borrowed_by: null, // Optional, null by default
-      },
-    ]);
+    if (user.role !== "superadmin") {
+      throw new Error("You are not authorized to perform this action");
+    }
+
+    const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      user_metadata: { role, full_name: name },
+      email_confirm: true,
+    });
 
     if (error) {
       throw new Error(error.message);
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json<ApiResponse<any>>(
       {
         success: true,
-        data,
+        data: newUser,
         message: "Item added successfully",
       },
       { status: 201 }
