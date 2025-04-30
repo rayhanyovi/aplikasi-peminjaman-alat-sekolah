@@ -7,13 +7,33 @@ export const GetLoans = async (
 ) => {
   const params = new URLSearchParams();
 
+  params.append("page", page.toString());
+  params.append("limit", limit.toString());
+
+  const response = await fetch(`/api/loans?${params.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  return response.json();
+};
+
+export const GetLoansHistory = async (
+  status?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const params = new URLSearchParams();
+
+  console.log("PARAMS ADALAH:", status, page, limit);
+
   if (status) {
     params.append("status", status);
   }
   params.append("page", page.toString());
   params.append("limit", limit.toString());
 
-  const response = await fetch(`/api/loans?${params.toString()}`, {
+  const response = await fetch(`/api/history?${params.toString()}`, {
     method: "GET",
     credentials: "include",
   });

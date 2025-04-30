@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
 import {
   Table,
@@ -16,6 +16,10 @@ import type { ColumnsType } from "antd/es/table";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { requests, getItemById, getUserById } from "@/dummy-data";
+import { GetLoans } from "@/lib/handler/api/loansHandler";
+import { UserProfilesType } from "@/types/userTypes";
+import { Item } from "@/types/itemTypes";
+import dayjs from "dayjs";
 
 interface Request {
   id: string;
@@ -33,6 +37,27 @@ export default function RequestsPage() {
   const { user } = useAuth();
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [loading, setIsLoading] = useState(true);
+  const [loanRequest, setLoanRequest] = useState<Request[]>([]);
+
+  useEffect(() => {
+    fetchLoanRequest();
+  }, []);
+
+  const fetchLoanRequest = async () => {
+    try {
+      const response = await GetLoans("pending", page, limit);
+      if (response.success) {
+        setLoanRequest(response.data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filter requests based on user role
   const userRequests =
@@ -41,20 +66,20 @@ export default function RequestsPage() {
       : requests;
 
   // Filter requests based on search and filters
-  const filteredRequests = userRequests.filter((request) => {
-    const item = getItemById(request.itemId);
-    const requester = getUserById(request.userId);
+  // const filteredRequests = userRequests.filter((request) => {
+  //   const item = getItemById(request.itemId);
+  //   const requester = getUserById(request.userId);
 
-    const matchesSearch = searchText
-      ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        requester?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        request.requestDate.toLowerCase().includes(searchText.toLowerCase())
-      : true;
+  //   const matchesSearch = searchText
+  //     ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
+  //       requester?.name.toLowerCase().includes(searchText.toLowerCase()) ||
+  //       request.requestDate.toLowerCase().includes(searchText.toLowerCase())
+  //     : true;
 
-    const matchesStatus = statusFilter ? request.status === statusFilter : true;
+  //   const matchesStatus = statusFilter ? request.status === statusFilter : true;
 
-    return matchesSearch && matchesStatus;
-  });
+  //   return matchesSearch && matchesStatus;
+  // });
 
   const getStatusTag = (status: string) => {
     switch (status) {
@@ -74,17 +99,17 @@ export default function RequestsPage() {
   const columns: ColumnsType<Request> = [
     {
       title: "Equipment",
-      dataIndex: "itemId",
+      dataIndex: "items",
       key: "item",
-      render: (itemId: string) => {
-        const item = getItemById(itemId);
+      render: (item: Item) => {
         return item ? item.name : "Unknown Item";
       },
     },
     {
       title: "Request Date",
-      dataIndex: "requestDate",
+      dataIndex: "requested_at",
       key: "requestDate",
+      render: (date: string) => dayjs(date).format("dddd, DD MMMM YYYY"),
     },
     {
       title: "Status",
@@ -94,26 +119,18 @@ export default function RequestsPage() {
     },
   ];
 
-  // Add requester column for admin/superadmin
   if (user?.role !== "student") {
     columns.splice(1, 0, {
       title: "Requester",
-      dataIndex: "userId",
+      dataIndex: "student",
       key: "requester",
-      render: (userId: string) => {
-        const requester = getUserById(userId);
-        return requester ? requester.name : "Unknown User";
+      render: (student: UserProfilesType) => {
+        return <p onClick={() => console.log(loanRequest)}>{student.name}</p>;
+
+        // return requester ? requester.student.name : "Unknown User";
       },
     });
   }
-
-  // Add due date column for approved requests
-  columns.push({
-    title: "Due Date",
-    dataIndex: "dueDate",
-    key: "dueDate",
-    render: (dueDate: string) => dueDate || "-",
-  });
 
   // Add action column
   columns.push({
@@ -154,23 +171,11 @@ export default function RequestsPage() {
             prefix={<Search size={16} className="mr-1" />}
             className="max-w-md"
           />
-          <Select
-            placeholder="Status"
-            allowClear
-            style={{ minWidth: 120 }}
-            onChange={(value) => setStatusFilter(value)}
-            value={statusFilter}
-          >
-            <Option value="pending">Pending</Option>
-            <Option value="approved">Approved</Option>
-            <Option value="rejected">Rejected</Option>
-            <Option value="returned">Returned</Option>
-          </Select>
         </div>
 
         <Table
-          columns={columns as ColumnsType<(typeof filteredRequests)[number]>}
-          dataSource={filteredRequests}
+          columns={columns}
+          dataSource={loanRequest}
           rowKey="id"
           pagination={{ pageSize: 10 }}
         />

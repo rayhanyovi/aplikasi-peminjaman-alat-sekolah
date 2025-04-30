@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
 import { Table, Input, Typography, Card, DatePicker } from "antd";
 import { Search } from "lucide-react";
 import Link from "next/link";
-import { history, getItemById, getUserById } from "@/dummy-data";
+import { GetLoans, GetLoansHistory } from "@/lib/handler/api/loansHandler";
+import "@ant-design/v5-patch-for-react-19";
+
+// import { history, getItemById, getUserById } from "@/dummy-data";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -13,81 +16,96 @@ const { RangePicker } = DatePicker;
 export default function HistoryPage() {
   const { user } = useAuth();
   const [searchText, setSearchText] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [dateRange, setDateRange] = useState<any>(null);
+  const [histories, setHistories] = useState<any>([]);
 
-  // Filter history based on user role
-  const filteredHistory = history.filter((record) => {
-    const item = getItemById(record.itemId);
-    const borrower = getUserById(record.userId);
+  useEffect(() => {
+    fetchLoanHistory();
+  }, []);
 
-    // For students, only show history without user info
-    if (user?.role === "student") {
-      const matchesSearch = searchText
-        ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          record.borrowDate.includes(searchText) ||
-          record.returnDate?.includes(searchText) ||
-          record.notes?.toLowerCase().includes(searchText.toLowerCase())
-        : true;
-
-      return matchesSearch;
+  const fetchLoanHistory = async () => {
+    try {
+      const response = await GetLoansHistory(undefined, page, limit);
+      if (response.success) {
+        setHistories(response.data);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // For admin/superadmin, show all history with user info
-    const matchesSearch = searchText
-      ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        borrower?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.borrowDate.includes(searchText) ||
-        record.returnDate?.includes(searchText) ||
-        record.notes?.toLowerCase().includes(searchText.toLowerCase())
-      : true;
+  // const filteredHistory = history.filter((record) => {
+  //   const item = getItemById(record.itemId);
+  //   const borrower = getUserById(record.userId);
 
-    return matchesSearch;
-  });
+  //   // For students, only show history without user info
+  //   if (user?.role === "student") {
+  //     const matchesSearch = searchText
+  //       ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
+  //         record.borrowDate.includes(searchText) ||
+  //         record.returnDate?.includes(searchText) ||
+  //         record.notes?.toLowerCase().includes(searchText.toLowerCase())
+  //       : true;
+
+  //     return matchesSearch;
+  //   }
+
+  //   // For admin/superadmin, show all history with user info
+  //   const matchesSearch = searchText
+  //     ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
+  //       borrower?.name.toLowerCase().includes(searchText.toLowerCase()) ||
+  //       record.borrowDate.includes(searchText) ||
+  //       record.returnDate?.includes(searchText) ||
+  //       record.notes?.toLowerCase().includes(searchText.toLowerCase())
+  //     : true;
+
+  //   return matchesSearch;
+  // });
 
   const columns = [
     {
       title: "Equipment",
-      dataIndex: "itemId",
-      key: "item",
-      render: (itemId: string) => {
-        const item = getItemById(itemId);
+      dataIndex: "item_id",
+      key: "item_id",
+      render: (record: any) => {
+        const item = histories.find((item: any) => item.item_id === record);
         return item ? (
-          <Link href={`/dashboard/items/${itemId}`}>{item.name}</Link>
+          <Link href={`/dashboard/items/${record}`}>{item.items.name}</Link>
         ) : (
+          // <p onClick={() => console.log(item)}>{record}</p>
           "Unknown Item"
         );
       },
     },
     {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+    },
+    {
       title: "Borrow Date",
-      dataIndex: "borrowDate",
+      dataIndex: "approved_at",
       key: "borrowDate",
     },
     {
       title: "Return Date",
-      dataIndex: "returnDate",
+      dataIndex: "returned_at",
       key: "returnDate",
     },
     {
-      title: "Notes",
-      dataIndex: "notes",
+      title: "Action",
+      dataIndex: "id",
       key: "notes",
-      render: (notes: string) => notes || "-",
+      render: (record: any) => {
+        return <Link href={`/dashboard/items/${record}`}>Details</Link>;
+      },
     },
   ];
-
-  // Add borrower column for admin/superadmin
-  if (user?.role !== "student") {
-    columns.splice(1, 0, {
-      title: "Borrowed By",
-      dataIndex: "userId",
-      key: "borrower",
-      render: (userId: string) => {
-        const borrower = getUserById(userId);
-        return borrower ? borrower.name : "Unknown User";
-      },
-    });
-  }
 
   return (
     <div className="space-y-6">
@@ -113,7 +131,7 @@ export default function HistoryPage() {
 
         <Table
           columns={columns}
-          dataSource={filteredHistory}
+          dataSource={histories}
           rowKey="id"
           pagination={{ pageSize: 10 }}
         />
