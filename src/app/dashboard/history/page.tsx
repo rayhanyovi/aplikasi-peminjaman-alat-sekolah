@@ -6,7 +6,7 @@ import { Table, Input, Typography, Card, DatePicker, Select } from "antd";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { GetLoans, GetLoansHistory } from "@/lib/handler/api/loansHandler";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 import { getStatusTag } from "@/lib/helper/getStatusTag";
 import dayjs from "dayjs";
 

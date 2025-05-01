@@ -26,7 +26,7 @@ import Link from "next/link";
 import { GetItemDetails } from "@/lib/handler/api/itemsHandler";
 import { HistoryEntry } from "@/types/api";
 import { HistoryRecords } from "@/types/itemTypes";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 import LoanRequestModal from "@/components/LoanRequestModal";
 
 const { Title, Text } = Typography;

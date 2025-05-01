@@ -22,7 +22,7 @@ import Loading from "./loading";
 import { useParams, useRouter } from "next/navigation";
 import ItemDetailModal from "@/components/ItemDetailsModal";
 import AddItemModal from "@/components/AddNewItemModal";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 
 const { Title } = Typography;
 const { Option } = Select;

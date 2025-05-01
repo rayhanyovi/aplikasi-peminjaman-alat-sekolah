@@ -27,7 +27,7 @@ import { Item } from "@/types/itemTypes";
 import dayjs from "dayjs";
 import LoanRequestDetailModal from "@/components/LoanRequestDetailModal";
 import LoanRejectModal from "@/components/LoanRejectModal";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 import { stat } from "fs";
 import LoanReturnModal from "@/components/LoanReturnModal";
 

@@ -9,7 +9,7 @@ import {
 } from "react";
 import { UserSignIn } from "@/lib/handler/api/authHandler";
 import { message } from "antd";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 
 type User = {
   id: string;

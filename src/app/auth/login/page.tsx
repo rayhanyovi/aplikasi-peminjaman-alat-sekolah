@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
 import { Button, Form, Input, Card, Typography, message } from "antd";
 import { LockIcon, MailIcon, UserRoundIcon } from "lucide-react";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 
 const { Title } = Typography;
 

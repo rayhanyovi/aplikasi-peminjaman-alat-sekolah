@@ -20,7 +20,7 @@ import {
 } from "antd";
 import { Plus, Search, Mail, User } from "lucide-react";
 import { AddUser, GetUsers } from "@/lib/handler/api/userHandler";
-import "@ant-design/v5-patch-for-react-19";
+// import "@ant-design/v5-patch-for-react-19";
 import { handleCsvUpload } from "@/lib/helper/csvUploadHandler";
 
 const { Title } = Typography;
