@@ -163,7 +163,6 @@ export default function ItemsPage() {
           rowKey="id"
           pagination={{
             onChange(page, pageSize) {
-              console.log(page, pageSize);
               setPage(page);
               setLimit(pageSize);
             },

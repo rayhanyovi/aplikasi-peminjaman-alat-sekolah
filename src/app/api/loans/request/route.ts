@@ -11,18 +11,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    console.log(body);
-
     const { itemId, requestNote, expectedReturn } = body;
-
-    console.log(
-      "itemId",
-      itemId,
-      "requestNote",
-      requestNote,
-      "expectedReturn",
-      expectedReturn
-    );
 
     if (!itemId || !requestNote || !expectedReturn) {
       return NextResponse.json<ApiResponse>(

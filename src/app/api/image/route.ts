@@ -6,8 +6,6 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
-    console.log("[API] File received:", file);
-
     if (!file) {
       console.warn("[API] Missing file");
       return NextResponse.json(
@@ -21,8 +19,6 @@ export async function POST(req: Request) {
     const timestamp = Date.now(); // atau bisa pakai uuid kalau mau lebih aman
     const fileName = `image_${timestamp}.${fileExt}`;
     const filePath = `items/${fileName}`;
-
-    console.log("[API] filePath:", filePath);
 
     const { error } = await supabaseAdmin.storage
       .from("images.item")
@@ -39,8 +35,6 @@ export async function POST(req: Request) {
     const { data: publicUrlData } = supabaseAdmin.storage
       .from("images.item") // Pastikan menggunakan bucket yang sama
       .getPublicUrl(filePath);
-
-    console.log("[API] publicUrlData:", publicUrlData);
 
     return NextResponse.json({
       success: true,

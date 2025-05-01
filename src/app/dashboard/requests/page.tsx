@@ -177,7 +177,7 @@ export default function RequestsPage() {
       dataIndex: "student",
       key: "requester",
       render: (student: UserProfilesType) => {
-        return <p onClick={() => console.log(loanRequest)}>{student.name}</p>;
+        return <p>{student.name}</p>;
 
         // return requester ? requester.student.name : "Unknown User";
       },
@@ -240,8 +240,6 @@ export default function RequestsPage() {
       <LoanRequestDetailModal
         open={isRequestDetailModalVisible}
         onClose={(status: "reject" | "accept" | "return") => {
-          console.log(status);
-
           if (status === "reject") {
             setIsRejectModalVisible(true);
           } else if (status === "accept") {
