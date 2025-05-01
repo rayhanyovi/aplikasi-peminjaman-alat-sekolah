@@ -1,4 +1,3 @@
-// app/api/loans/route.ts
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import type { ApiResponse, Item, Loan } from "@/types/api";
@@ -25,35 +24,32 @@ export async function GET(req: Request) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabaseAdmin.from("loans").select(`
-  id, 
-  item_id, 
-  student_id, 
-  status, 
-  requested_at, 
-  approved_at, 
-  approved_by, 
-  rejected_at, 
-  rejected_by, 
-  rejection_notice, 
-  returned_at, 
-  return_note,
-  items:item_id (name, image)
-`);
-
-    // if (status && validStatuses.includes(status)) {
-    //   query = query.eq("status", status);
-    //   console.debug("📌 Filtering by status:", status);
-    // }
+    let query = supabaseAdmin.from("loans").select(
+      `
+    id, 
+    item_id, 
+    student_id, 
+    status, 
+    requested_at, 
+    approved_at, 
+    approved_by, 
+    rejected_at, 
+    rejected_by, 
+    rejection_notice, 
+    returned_at, 
+    return_note,
+    items:item_id (name, image)
+  `,
+      { count: "exact" }
+    );
 
     if (userRole === "siswa") {
       query = query.eq("student_id", userRole);
-      console.debug("📌 Filtering by student_id (siswa):", userRole);
     }
 
     query = query.range(from, to);
 
-    const { data, error } = await query.order("requested_at", {
+    const { data, count, error } = await query.order("requested_at", {
       ascending: false,
     });
 
@@ -75,6 +71,7 @@ export async function GET(req: Request) {
     return NextResponse.json<ApiResponse<RequestLoanItemType[]>>(
       {
         success: true,
+        count: count ?? 0,
         data: loansWithStudent,
         message: "Loans retrieved successfully",
       },

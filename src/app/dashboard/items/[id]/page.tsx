@@ -26,6 +26,8 @@ import Link from "next/link";
 import { GetItemDetails } from "@/lib/handler/api/itemsHandler";
 import { HistoryEntry } from "@/types/api";
 import { HistoryRecords } from "@/types/itemTypes";
+import "@ant-design/v5-patch-for-react-19";
+import LoanRequestModal from "@/components/LoanRequestModal";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -114,15 +116,101 @@ export default function ItemDetailPage() {
     setIsModalVisible(true);
   };
 
-  const handleSubmitRequest = async (values: any) => {
-    setLoading(true);
-    setTimeout(() => {
-      message.success("Borrow request submitted successfully");
-      setIsModalVisible(false);
-      setLoading(false);
-      router.push("/dashboard/requests");
-    }, 1000);
-  };
+  const items = [
+    {
+      key: "history",
+      label: (
+        <span className="flex items-center gap-1">
+          <Clock size={16} />
+          Borrowing History
+        </span>
+      ),
+      children: (
+        <List
+          dataSource={history}
+          renderItem={(record: HistoryRecords) => (
+            <List.Item>
+              <List.Item.Meta
+                title={
+                  <span>Borrowed by {record.borrower.name || "Unknown"}</span>
+                }
+                description={
+                  <div>
+                    <div>
+                      Borrow Date:{" "}
+                      {dayjs(record.approved_at).format("dddd, DD MMMM YYYY") ||
+                        "-"}
+                      <br />
+                      Return Date:{" "}
+                      {dayjs(record.returned_at).format("dddd, DD MMMM YYYY") ||
+                        "-"}
+                    </div>
+                    {record.return_note && (
+                      <div className="mt-1">
+                        <Text strong>Notes: </Text>
+                        {record.return_note}
+                      </div>
+                    )}
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+          locale={{
+            emptyText: "No borrowing history for this item",
+          }}
+        />
+      ),
+    },
+  ];
+
+  if (user?.role === "admin" || user?.role === "superadmin") {
+    items.push({
+      key: "requests",
+      label: (
+        <span className="flex items-center gap-1">
+          <Clock size={16} />
+          Current Situation
+        </span>
+      ),
+      children: (
+        <List
+          dataSource={current_request}
+          renderItem={(request: any) => (
+            <List.Item
+              actions={[
+                <Link key="review" href={`/dashboard/requests/${request.id}`}>
+                  <Button type="link">Review</Button>
+                </Link>,
+              ]}
+            >
+              <List.Item.Meta
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>Request by {request.userName || "Unknown"}</span>
+                    <Tag
+                      color={request.status === "pending" ? "orange" : "green"}
+                    >
+                      {request.status}
+                    </Tag>
+                  </div>
+                }
+                description={
+                  <div>
+                    <div>Request Date: {request.requestDate || "-"}</div>
+                    {request.dueDate && <div>Due Date: {request.dueDate}</div>}
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+          locale={{
+            emptyText: "No active requests for this item",
+          }}
+        />
+      ),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -135,24 +223,29 @@ export default function ItemDetailPage() {
       </div>
 
       <Card variant="borderless">
-        <Image src={item.image} alt="item" width={200} height={200} />
-        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
-          <div>
-            <Title level={4}>{item.name}</Title>
-            <div className="flex items-center gap-2 mb-2">
-              {getStatusTag(item.status)}
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          {" "}
+          <Image
+            src={item.image}
+            alt="item"
+            className="flex md:min-h-48 !w-full object-cover"
+          />
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 flex-1">
+            <div className="flex-1 ">
+              <Title level={4}>{item.name}</Title>
+              <div className="flex items-center gap-2 mb-2">
+                {getStatusTag(item.status)}
+              </div>
+              <Text type="secondary">Serial Number: {item.code}</Text>
             </div>
-            <Text type="secondary">Serial Number: {item.code}</Text>
+            {user?.role === "siswa" && item.status === "tersedia" && (
+              <Button type="primary" onClick={handleBorrowRequest}>
+                Request to Borrow
+              </Button>
+            )}
           </div>
-          {user?.role === "student" && item.status === "available" && (
-            <Button type="primary" onClick={handleBorrowRequest}>
-              Request to Borrow
-            </Button>
-          )}
         </div>
-
         <Divider />
-
         <Descriptions title="Equipment Details" layout="vertical" bordered>
           <Descriptions.Item label="Description" span={3}>
             {item.description || "-"}
@@ -167,164 +260,23 @@ export default function ItemDetailPage() {
             {getStatusTag(item.status)}
           </Descriptions.Item>
         </Descriptions>
-
-        <Tabs defaultActiveKey="history" className="mt-6">
-          <TabPane
-            tab={
-              <span className="flex items-center gap-1">
-                <Clock size={16} />
-                Borrowing History
-              </span>
-            }
-            key="history"
-          >
-            <List
-              dataSource={history}
-              renderItem={(record: HistoryRecords) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={
-                      <span>
-                        Borrowed by {record.borrower.name || "Unknown"}
-                      </span>
-                    }
-                    description={
-                      <div>
-                        <div>
-                          Borrow Date:{" "}
-                          {dayjs(record.approved_at).format(
-                            "dddd, DD MMMM YYYY"
-                          ) || "-"}{" "}
-                          <br />
-                          Return Date:{" "}
-                          {dayjs(record.returned_at).format(
-                            "dddd, DD MMMM YYYY"
-                          ) || "-"}
-                        </div>
-                        {record.return_note && (
-                          <div className="mt-1">
-                            <Text strong>Notes: </Text>
-                            {record.return_note}
-                          </div>
-                        )}
-                      </div>
-                    }
-                  />
-                </List.Item>
-              )}
-              locale={{
-                emptyText: "No borrowing history for this item",
-              }}
-            />
-          </TabPane>
-
-          {(user?.role === "admin" || user?.role === "superadmin") && (
-            <TabPane
-              tab={
-                <span className="flex items-center gap-1">
-                  <Clock size={16} />
-                  Current Requests
-                </span>
-              }
-              key="requests"
-            >
-              <List
-                dataSource={current_request}
-                renderItem={(request: any) => (
-                  <List.Item
-                    actions={[
-                      <Link
-                        key="review"
-                        href={`/dashboard/requests/${request.id}`}
-                      >
-                        <Button type="link">Review</Button>
-                      </Link>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={
-                        <div className="flex items-center gap-2">
-                          <span>
-                            Request by {request.userName || "Unknown"}
-                          </span>
-                          <Tag
-                            color={
-                              request.status === "pending" ? "orange" : "green"
-                            }
-                          >
-                            {request.status}
-                          </Tag>
-                        </div>
-                      }
-                      description={
-                        <div>
-                          <div>Request Date: {request.requestDate || "-"}</div>
-                          {request.dueDate && (
-                            <div>Due Date: {request.dueDate}</div>
-                          )}
-                        </div>
-                      }
-                    />
-                  </List.Item>
-                )}
-                locale={{
-                  emptyText: "No active requests for this item",
-                }}
-              />
-            </TabPane>
-          )}
-        </Tabs>
+        <Tabs defaultActiveKey="history" className="mt-6" items={items} />
       </Card>
 
-      <Modal
-        title="Borrow Request"
+      <LoanRequestModal
+        itemId={itemId}
         open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmitRequest}
-          initialValues={{ purpose: "", returnDate: null }}
-        >
-          <Form.Item
-            name="purpose"
-            label="Purpose of Borrowing"
-            rules={[
-              {
-                required: true,
-                message: "Please explain why you need this equipment",
-              },
-            ]}
-          >
-            <TextArea
-              rows={4}
-              placeholder="Explain why you need this equipment"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="returnDate"
-            label="Expected Return Date"
-            rules={[
-              {
-                required: true,
-                message: "Please select an expected return date",
-              },
-            ]}
-          >
-            <DatePicker className="w-full" />
-          </Form.Item>
-
-          <Form.Item className="mb-0 flex justify-end gap-2">
-            <Button onClick={() => setIsModalVisible(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Submit Request
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onClose={(status: any) => {
+          setIsModalVisible(false);
+          setItemData((prev: any) => ({
+            ...prev,
+            item: {
+              ...prev.item,
+              status: status,
+            },
+          }));
+        }}
+      />
     </div>
   );
 }

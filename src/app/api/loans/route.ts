@@ -1,32 +1,27 @@
 // app/api/loans/route.ts
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import type { ApiResponse, Item, Loan } from "@/types/api";
+import type { ApiResponse, Loan } from "@/types/api";
 import { RequestLoanItemType } from "@/types/requestTypes";
 import { getUserFromToken } from "@/lib/helper/getUserFromToken";
 
 export async function GET(req: Request) {
   try {
-    const userRole = (await getUserFromToken(req)).role;
+    const user = await getUserFromToken(req);
 
     const url = new URL(req.url);
     const status = url.searchParams.get("status");
-    const limitParam = url.searchParams.get("limit") || "10";
-    const pageParam = url.searchParams.get("page") || "1";
     const validStatuses = ["pending", "approved", "rejected", "returned"];
 
-    const limit = parseInt(limitParam);
-    const page = parseInt(pageParam);
-
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
-
-    let query = supabaseAdmin.from("loans").select(`
+    let query = supabaseAdmin.from("loans").select(
+      `
         id, 
         item_id, 
         student_id, 
         status, 
-        requested_at, 
+        requested_at,
+        request_note,
+        expected_return_at,
         approved_at, 
         approved_by, 
         rejected_at, 
@@ -35,24 +30,20 @@ export async function GET(req: Request) {
         returned_at, 
         return_note,
         items:item_id (name, code, image),
-        profiles:student_id (*)   -- Join with profiles table using student_id
-      `);
+        profiles:student_id (*)
+      `,
+      { count: "exact" }
+    );
 
-    // Filter by status if provided
     if (status && validStatuses.includes(status)) {
       query = query.eq("status", status);
     }
 
-    // Students can only see their own loans
-    if (userRole == "siswa") {
-      query = query.eq("student_id", userRole);
+    if (user.role === "siswa") {
+      query = query.eq("student_id", user.id);
     }
 
-    query = query.range(from, to);
-
-    const { data, error } = await query.order("requested_at", {
-      ascending: false,
-    });
+    const { data, error, count } = await query;
 
     if (error) {
       throw new Error(error.message);
@@ -71,11 +62,12 @@ export async function GET(req: Request) {
         profiles: undefined,
       };
     });
+
     return NextResponse.json<ApiResponse<RequestLoanItemType[]>>(
       {
         success: true,
-        data: loansWithStudent,
         message: "Loans retrieved successfully",
+        data: loansWithStudent,
       },
       { status: 200 }
     );

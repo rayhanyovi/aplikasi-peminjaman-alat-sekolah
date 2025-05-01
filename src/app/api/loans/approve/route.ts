@@ -1,15 +1,25 @@
 // app/api/loans/approve/route.ts
-import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/auth"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import type { ApiResponse, LoanApproval } from "@/types/api"
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseClient";
 
-export async function POST(req: Request) {
+import type { ApiResponse, LoanApproval } from "@/types/api";
+import { getUserFromToken } from "@/lib/helper/getUserFromToken";
+
+export async function PUT(req: Request) {
   try {
-    // Ensure user is admin or superadmin
-    const admin = await requireRole(req, ["admin", "superadmin"])
+    const user = await getUserFromToken(req);
 
-    const { itemId }: LoanApproval = await req.json()
+    if (user.role !== "admin" && user.role !== "superadmin") {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: "You are not authorized to approve loans",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { itemId }: LoanApproval = await req.json();
 
     if (!itemId) {
       return NextResponse.json<ApiResponse>(
@@ -17,8 +27,8 @@ export async function POST(req: Request) {
           success: false,
           error: "Item ID is required",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
     // Check if item exists and has a pending loan
@@ -26,7 +36,7 @@ export async function POST(req: Request) {
       .from("items")
       .select("id, status")
       .eq("id", itemId)
-      .single()
+      .single();
 
     if (itemError || !item) {
       return NextResponse.json<ApiResponse>(
@@ -34,8 +44,8 @@ export async function POST(req: Request) {
           success: false,
           error: "Item not found",
         },
-        { status: 404 },
-      )
+        { status: 404 }
+      );
     }
 
     if (item.status !== "pending") {
@@ -44,8 +54,8 @@ export async function POST(req: Request) {
           success: false,
           error: "Item does not have a pending loan request",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
     // Get the pending loan
@@ -54,7 +64,7 @@ export async function POST(req: Request) {
       .select("id, student_id")
       .eq("item_id", itemId)
       .eq("status", "pending")
-      .single()
+      .single();
 
     if (loanError || !loan) {
       return NextResponse.json<ApiResponse>(
@@ -62,8 +72,8 @@ export async function POST(req: Request) {
           success: false,
           error: "No pending loan found for this item",
         },
-        { status: 404 },
-      )
+        { status: 404 }
+      );
     }
 
     // Update loan status
@@ -71,13 +81,13 @@ export async function POST(req: Request) {
       .from("loans")
       .update({
         status: "approved",
-        approved_by: admin.id,
+        approved_by: user.id,
         approved_at: new Date().toISOString(),
       })
-      .eq("id", loan.id)
+      .eq("id", loan.id);
 
     if (updateLoanError) {
-      throw new Error(updateLoanError.message)
+      throw new Error(updateLoanError.message);
     }
 
     // Update item status
@@ -87,10 +97,10 @@ export async function POST(req: Request) {
         status: "dipinjam",
         borrowed_by: loan.student_id,
       })
-      .eq("id", itemId)
+      .eq("id", itemId);
 
     if (updateItemError) {
-      throw new Error(updateItemError.message)
+      throw new Error(updateItemError.message);
     }
 
     // Get borrower info
@@ -98,7 +108,7 @@ export async function POST(req: Request) {
       .from("profiles")
       .select("name, email")
       .eq("id", loan.student_id)
-      .single()
+      .single();
 
     return NextResponse.json<ApiResponse>(
       {
@@ -106,15 +116,15 @@ export async function POST(req: Request) {
         data: { borrower },
         message: "Loan approved successfully",
       },
-      { status: 200 },
-    )
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: error.message || "Failed to approve loan",
       },
-      { status: error.message.includes("Unauthorized") ? 403 : 500 },
-    )
+      { status: error.message.includes("Unauthorized") ? 403 : 500 }
+    );
   }
 }

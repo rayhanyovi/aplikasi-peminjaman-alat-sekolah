@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { GetLoans, GetLoansHistory } from "@/lib/handler/api/loansHandler";
 import "@ant-design/v5-patch-for-react-19";
+import { getStatusTag } from "@/lib/helper/getStatusTag";
 
 // import { history, getItemById, getUserById } from "@/dummy-data";
 
@@ -16,21 +17,24 @@ const { RangePicker } = DatePicker;
 export default function HistoryPage() {
   const { user } = useAuth();
   const [searchText, setSearchText] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [dateRange, setDateRange] = useState<any>(null);
   const [histories, setHistories] = useState<any>([]);
 
   useEffect(() => {
     fetchLoanHistory();
-  }, []);
+  }, [page, limit]);
 
   const fetchLoanHistory = async () => {
+    setIsLoading(true);
     try {
       const response = await GetLoansHistory(undefined, page, limit);
       if (response.success) {
         setHistories(response.data);
+        setTotal(response.count);
       }
     } catch (error) {
       console.error(error);
@@ -39,35 +43,12 @@ export default function HistoryPage() {
     }
   };
 
-  // const filteredHistory = history.filter((record) => {
-  //   const item = getItemById(record.itemId);
-  //   const borrower = getUserById(record.userId);
-
-  //   // For students, only show history without user info
-  //   if (user?.role === "student") {
-  //     const matchesSearch = searchText
-  //       ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-  //         record.borrowDate.includes(searchText) ||
-  //         record.returnDate?.includes(searchText) ||
-  //         record.notes?.toLowerCase().includes(searchText.toLowerCase())
-  //       : true;
-
-  //     return matchesSearch;
-  //   }
-
-  //   // For admin/superadmin, show all history with user info
-  //   const matchesSearch = searchText
-  //     ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-  //       borrower?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-  //       record.borrowDate.includes(searchText) ||
-  //       record.returnDate?.includes(searchText) ||
-  //       record.notes?.toLowerCase().includes(searchText.toLowerCase())
-  //     : true;
-
-  //   return matchesSearch;
-  // });
-
   const columns = [
+    {
+      title: "Id",
+      dataIndex: "id",
+      key: "id",
+    },
     {
       title: "Equipment",
       dataIndex: "item_id",
@@ -86,6 +67,7 @@ export default function HistoryPage() {
       title: "Status",
       dataIndex: "status",
       key: "status",
+      render: (status: string) => getStatusTag(status),
     },
     {
       title: "Borrow Date",
@@ -131,9 +113,17 @@ export default function HistoryPage() {
 
         <Table
           columns={columns}
+          loading={isLoading}
           dataSource={histories}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            onChange(page, pageSize) {
+              setPage(page);
+              setLimit(pageSize);
+            },
+            total: total,
+            defaultPageSize: 20,
+          }}
         />
       </Card>
     </div>

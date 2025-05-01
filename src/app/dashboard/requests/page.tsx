@@ -11,15 +11,23 @@ import {
   Typography,
   Space,
   Card,
+  message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Search } from "lucide-react";
-import Link from "next/link";
-import { requests, getItemById, getUserById } from "@/dummy-data";
-import { GetLoans } from "@/lib/handler/api/loansHandler";
+import { useRouter } from "next/navigation";
+import {
+  ApproveLoan,
+  GetLoans,
+  RejectLoan,
+} from "@/lib/handler/api/loansHandler";
 import { UserProfilesType } from "@/types/userTypes";
 import { Item } from "@/types/itemTypes";
 import dayjs from "dayjs";
+import LoanRequestDetailModal from "@/components/LoanRequestDetailModal";
+import LoanRejectModal from "@/components/LoanRejectModal";
+import "@ant-design/v5-patch-for-react-19";
+import { stat } from "fs";
 
 interface Request {
   id: string;
@@ -34,13 +42,18 @@ const { Title } = Typography;
 const { Option } = Select;
 
 export default function RequestsPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [loading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [loanRequest, setLoanRequest] = useState<Request[]>([]);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [isRequestDetailModalVisible, setIsRequestDetailModalVisible] =
+    useState(false);
+
+  const [selectedItem, setSelectedItem] = useState<any>(null);
 
   useEffect(() => {
     fetchLoanRequest();
@@ -59,27 +72,42 @@ export default function RequestsPage() {
     }
   };
 
-  // Filter requests based on user role
-  const userRequests =
-    user?.role === "student"
-      ? requests.filter((req) => req.userId === user.id)
-      : requests;
+  const handleApprove = async () => {
+    setIsLoading(true);
+    try {
+      const response = await ApproveLoan({
+        itemId: selectedItem.item_id,
+      });
+      if (response.success) {
+        message.success("Loan approved successfully");
+        setIsLoading(false);
+        loanRequest.splice(loanRequest.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Filter requests based on search and filters
-  // const filteredRequests = userRequests.filter((request) => {
-  //   const item = getItemById(request.itemId);
-  //   const requester = getUserById(request.userId);
-
-  //   const matchesSearch = searchText
-  //     ? item?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-  //       requester?.name.toLowerCase().includes(searchText.toLowerCase()) ||
-  //       request.requestDate.toLowerCase().includes(searchText.toLowerCase())
-  //     : true;
-
-  //   const matchesStatus = statusFilter ? request.status === statusFilter : true;
-
-  //   return matchesSearch && matchesStatus;
-  // });
+  const handleReject = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await RejectLoan({
+        itemId: selectedItem.item_id,
+        rejectionNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan rejected successfully");
+        setIsRejectModalVisible(false);
+        loanRequest.splice(loanRequest.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusTag = (status: string) => {
     switch (status) {
@@ -138,13 +166,16 @@ export default function RequestsPage() {
     key: "action",
     render: (_: any, record: any) => (
       <Space size="small">
-        <Link href={`/dashboard/requests/${record.id}`}>
-          <Button type="link" size="small">
-            {user?.role !== "student" && record.status === "pending"
-              ? "Review"
-              : "View"}
-          </Button>
-        </Link>
+        <Button
+          type="link"
+          size="small"
+          onClick={() => {
+            setIsRequestDetailModalVisible(true);
+            setSelectedItem(record);
+          }}
+        >
+          WAK
+        </Button>
       </Space>
     ),
   });
@@ -178,8 +209,36 @@ export default function RequestsPage() {
           dataSource={loanRequest}
           rowKey="id"
           pagination={{ pageSize: 10 }}
+          loading={isLoading}
         />
       </Card>
+
+      <LoanRequestDetailModal
+        open={isRequestDetailModalVisible}
+        onClose={(status: "reject" | "accept") => {
+          console.log(status);
+
+          if (status === "reject") {
+            setIsRejectModalVisible(true);
+          } else if (status === "accept") {
+            handleApprove();
+          }
+
+          setIsRequestDetailModalVisible(false);
+        }}
+        item={selectedItem}
+      />
+
+      <LoanRejectModal
+        open={isRejectModalVisible}
+        onClose={(payload?: any) => {
+          setIsRejectModalVisible(false);
+          if (payload) {
+            handleReject(payload);
+          }
+        }}
+        item={selectedItem}
+      />
     </div>
   );
 }

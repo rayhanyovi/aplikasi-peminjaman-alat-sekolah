@@ -1,31 +1,34 @@
 // app/api/loans/request/route.ts
 import { NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseClient";
 import type { ApiResponse, LoanRequest } from "@/types/api";
+import { getUserFromToken } from "@/lib/helper/getUserFromToken";
 
 export async function POST(req: Request) {
   try {
     // Get authenticated user (must be a student)
-    const user = await getUserFromRequest(req);
+    const user = await getUserFromToken(req);
 
-    if (user.role !== "siswa") {
+    const body = await req.json();
+
+    console.log(body);
+
+    const { itemId, requestNote, expectedReturn } = body;
+
+    console.log(
+      "itemId",
+      itemId,
+      "requestNote",
+      requestNote,
+      "expectedReturn",
+      expectedReturn
+    );
+
+    if (!itemId || !requestNote || !expectedReturn) {
       return NextResponse.json<ApiResponse>(
         {
           success: false,
-          error: "Only students can request loans",
-        },
-        { status: 403 }
-      );
-    }
-
-    const { itemId }: LoanRequest = await req.json();
-
-    if (!itemId) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Item ID is required",
+          error: "Item ID, Request Note, and Expected Return Date is required",
         },
         { status: 400 }
       );
@@ -65,6 +68,8 @@ export async function POST(req: Request) {
         item_id: itemId,
         student_id: user.id,
         status: "pending",
+        expected_return_at: expectedReturn,
+        request_note: requestNote,
         requested_at: new Date().toISOString(),
       })
       .select()

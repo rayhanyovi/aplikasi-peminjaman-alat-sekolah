@@ -87,6 +87,8 @@ export interface Loan {
 
 export interface LoanRequest {
   itemId: number;
+  requestNote: string;
+  expectedReturn: Date;
 }
 
 export interface LoanApproval {

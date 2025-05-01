@@ -9,6 +9,7 @@ import {
 } from "react";
 import { UserSignIn } from "@/lib/handler/api/authHandler";
 import { message } from "antd";
+import "@ant-design/v5-patch-for-react-19";
 
 type User = {
   id: string;
@@ -38,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
     }
 
-    // Check for saved session
     const savedSession = localStorage.getItem("user_session");
     if (savedSession) {
       const sessionData = JSON.parse(savedSession);
@@ -47,9 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isSessionExpired = Date.now() / 1000 > sessionData.expires_at;
       if (isSessionExpired) {
         message.error("Session expired");
-        logout(); // Optional: automatically logout if session expired
-      } else {
-        message.error("Session is valid");
+        logout();
       }
     } else {
       message.error("No saved session found in localStorage.");
@@ -81,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user_spas");

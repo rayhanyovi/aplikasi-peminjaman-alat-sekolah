@@ -231,11 +231,11 @@ export default function DashboardLayout({
                 >
                   {user.name.charAt(0)}
                 </Avatar>
-                <div className="hidden md:block">
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-xs text-gray-500 capitalize">
+                <div className="hidden md:flex flex-col">
+                  <p className="text-base  capitalize font-bold">{user.name}</p>
+                  <p className="text-xs text-gray-500 capitalize">
                     {user.role}
-                  </div>
+                  </p>
                 </div>
               </div>
             </Dropdown>
