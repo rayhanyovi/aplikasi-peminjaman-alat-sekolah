@@ -45,12 +45,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       message.error("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
-      console.debug("Finished fetching dashboard data.");
     }
   };
 
   useEffect(() => {
-    console.debug("Dashboard component mounted, fetching data...");
     fetchDashboardData();
   }, []);
 
