@@ -5,28 +5,25 @@ import dayjs from "dayjs";
 
 const { Title, Text, Paragraph } = Typography;
 
-export default function LoanRejectModal({ item, open, onClose }: any) {
-  const [reason, setReason] = useState(""); // ⬅️ State untuk textarea
+export default function LoanReturnModal({ item, open, onClose }: any) {
+  const [notes, setNotes] = useState("");
 
   if (!item) return null;
 
   return (
     <Modal
-      title="Alasan Peminjaman Ditolak"
+      title="Catatan Pengembalian"
       open={open}
       onCancel={() => onClose()}
       footer={
         <>
-          <Divider />
           <div className="flex flex-row gap-4 w-full items-end justify-end">
             <Button
               type="primary"
-              danger
-              ghost
               className="w-32"
               onClick={() => {
-                onClose({ payload: reason });
-                setReason("");
+                onClose({ payload: notes });
+                setNotes("");
               }}
             >
               Konfirmasi
@@ -37,12 +34,16 @@ export default function LoanRejectModal({ item, open, onClose }: any) {
       width={700}
     >
       <TextArea
-        name="reason"
-        placeholder="Alasan Peminjaman Ditolak"
+        className="!mt-8"
+        name="notes"
+        placeholder="Catatan Pengembalian (contoh: Lensa Tergores, Baut lepas, dsb)"
         rows={4}
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
       />
+      <p className="italic text-gray-400 mt-4">
+        Catatan: Kosongkan jika tidak ada catatan apa pun
+      </p>
     </Modal>
   );
 }

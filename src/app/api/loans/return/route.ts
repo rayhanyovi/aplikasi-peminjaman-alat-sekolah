@@ -1,15 +1,24 @@
 // app/api/loans/return/route.ts
-import { NextResponse } from "next/server"
-import { requireRole } from "@/lib/auth"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import type { ApiResponse, ItemReturn } from "@/types/api"
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseClient";
+import type { ApiResponse, ItemReturn } from "@/types/api";
+import { getUserFromToken } from "@/lib/helper/getUserFromToken";
 
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   try {
-    // Ensure user is admin or superadmin
-    await requireRole(req, ["admin", "superadmin"])
+    const user = await getUserFromToken(req);
 
-    const { itemId, returnNote }: ItemReturn = await req.json()
+    if (user.role !== "admin" && user.role !== "superadmin") {
+      return NextResponse.json<ApiResponse>(
+        {
+          success: false,
+          error: "You are not authorized to reject loans",
+        },
+        { status: 403 }
+      );
+    }
+
+    const { itemId, returnNote }: ItemReturn = await req.json();
 
     if (!itemId) {
       return NextResponse.json<ApiResponse>(
@@ -17,26 +26,26 @@ export async function POST(req: Request) {
           success: false,
           error: "Item ID is required",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
-    if (!returnNote) {
-      return NextResponse.json<ApiResponse>(
-        {
-          success: false,
-          error: "Return note is required",
-        },
-        { status: 400 },
-      )
-    }
+    // if (!returnNote) {
+    //   return NextResponse.json<ApiResponse>(
+    //     {
+    //       success: false,
+    //       error: "Return note is required",
+    //     },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Check if item exists and is borrowed
     const { data: item, error: itemError } = await supabaseAdmin
       .from("items")
       .select("id, status, borrowed_by")
       .eq("id", itemId)
-      .single()
+      .single();
 
     if (itemError || !item) {
       return NextResponse.json<ApiResponse>(
@@ -44,8 +53,8 @@ export async function POST(req: Request) {
           success: false,
           error: "Item not found",
         },
-        { status: 404 },
-      )
+        { status: 404 }
+      );
     }
 
     if (item.status !== "dipinjam") {
@@ -54,8 +63,8 @@ export async function POST(req: Request) {
           success: false,
           error: "Item is not currently borrowed",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
     // Get the active loan
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
       .select("id")
       .eq("item_id", itemId)
       .eq("status", "approved")
-      .single()
+      .single();
 
     if (loanError || !loan) {
       return NextResponse.json<ApiResponse>(
@@ -72,8 +81,8 @@ export async function POST(req: Request) {
           success: false,
           error: "No active loan found for this item",
         },
-        { status: 404 },
-      )
+        { status: 404 }
+      );
     }
 
     // Update loan status
@@ -84,10 +93,10 @@ export async function POST(req: Request) {
         returned_at: new Date().toISOString(),
         return_note: returnNote,
       })
-      .eq("id", loan.id)
+      .eq("id", loan.id);
 
     if (updateLoanError) {
-      throw new Error(updateLoanError.message)
+      throw new Error(updateLoanError.message);
     }
 
     // Update item status
@@ -97,10 +106,10 @@ export async function POST(req: Request) {
         status: "tersedia",
         borrowed_by: null,
       })
-      .eq("id", itemId)
+      .eq("id", itemId);
 
     if (updateItemError) {
-      throw new Error(updateItemError.message)
+      throw new Error(updateItemError.message);
     }
 
     return NextResponse.json<ApiResponse>(
@@ -108,15 +117,15 @@ export async function POST(req: Request) {
         success: true,
         message: "Item returned successfully",
       },
-      { status: 200 },
-    )
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json<ApiResponse>(
       {
         success: false,
         error: error.message || "Failed to process return",
       },
-      { status: error.message.includes("Unauthorized") ? 403 : 500 },
-    )
+      { status: error.message.includes("Unauthorized") ? 403 : 500 }
+    );
   }
 }

@@ -2,23 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/authContext";
-import {
-  Form,
-  Input,
-  Select,
-  Button,
-  Typography,
-  message,
-  Modal,
-  DatePicker,
-} from "antd";
-import { AddNewItem } from "@/lib/handler/api/itemsHandler";
-import { RequestCookies } from "next/dist/compiled/@edge-runtime/cookies";
+import { Form, Input, Button, message, Modal, DatePicker } from "antd";
+
 import { RequestLoan } from "@/lib/handler/api/loansHandler";
 
-const { Title } = Typography;
-const { Option } = Select;
 const { TextArea } = Input;
 
 export default function LoanRequestModal({ itemId, open, onClose }: any) {

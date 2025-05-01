@@ -45,11 +45,6 @@ export default function HistoryPage() {
 
   const columns = [
     {
-      title: "Id",
-      dataIndex: "id",
-      key: "id",
-    },
-    {
       title: "Equipment",
       dataIndex: "item_id",
       key: "item_id",

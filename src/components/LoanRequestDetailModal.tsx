@@ -45,22 +45,35 @@ export default function LoanRequestDetailModal({ item, open, onClose }: any) {
             <>
               <Divider />
               <div className="flex flex-row gap-4 w-full items-end justify-end">
-                <Button
-                  type="primary"
-                  className="w-32"
-                  onClick={() => onClose("accept")}
-                >
-                  Accept
-                </Button>
-                <Button
-                  type="primary"
-                  danger
-                  ghost
-                  className="w-32"
-                  onClick={() => onClose("reject")}
-                >
-                  Tolak
-                </Button>
+                {status === "pending" ? (
+                  <>
+                    {" "}
+                    <Button
+                      type="primary"
+                      className="w-32"
+                      onClick={() => onClose("accept")}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      type="primary"
+                      danger
+                      ghost
+                      className="w-32"
+                      onClick={() => onClose("reject")}
+                    >
+                      Tolak
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="primary"
+                    className="w-32"
+                    onClick={() => onClose("reject")}
+                  >
+                    Confirm Return
+                  </Button>
+                )}
               </div>
             </>
           ) : null
@@ -114,7 +127,6 @@ export default function LoanRequestDetailModal({ item, open, onClose }: any) {
           </Col>
         </div>
 
-        {/* Optional Details */}
         {(approved_at || rejected_at || returned_at) && (
           <>
             <Divider />
@@ -126,7 +138,7 @@ export default function LoanRequestDetailModal({ item, open, onClose }: any) {
                   {dayjs(approved_at).format("DD MMM YYYY, HH:mm")}
                 </Paragraph>
                 <Text strong>Disetujui oleh:</Text>
-                <Paragraph>{approved_by || "-"}</Paragraph>
+                <Paragraph>{approved_by.name || "-"}</Paragraph>
               </>
             )}
 

@@ -104,3 +104,26 @@ export const ApproveLoan = async ({ itemId }: { itemId: string }) => {
   });
   return response.json();
 };
+
+export const ReturnLoan = async ({
+  itemId,
+  returnNote,
+}: {
+  itemId: number;
+  returnNote: string;
+}) => {
+  const payload = {
+    itemId: itemId,
+    returnNote: returnNote,
+  };
+
+  const response = await fetch(`/api/loans/return`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  return response.json();
+};

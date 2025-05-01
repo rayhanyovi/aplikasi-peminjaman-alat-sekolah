@@ -20,6 +20,7 @@ import {
   ApproveLoan,
   GetLoans,
   RejectLoan,
+  ReturnLoan,
 } from "@/lib/handler/api/loansHandler";
 import { UserProfilesType } from "@/types/userTypes";
 import { Item } from "@/types/itemTypes";
@@ -28,6 +29,7 @@ import LoanRequestDetailModal from "@/components/LoanRequestDetailModal";
 import LoanRejectModal from "@/components/LoanRejectModal";
 import "@ant-design/v5-patch-for-react-19";
 import { stat } from "fs";
+import LoanReturnModal from "@/components/LoanReturnModal";
 
 interface Request {
   id: string;
@@ -50,6 +52,7 @@ export default function RequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [loanRequest, setLoanRequest] = useState<Request[]>([]);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [isRequestDetailModalVisible, setIsRequestDetailModalVisible] =
     useState(false);
 
@@ -61,7 +64,7 @@ export default function RequestsPage() {
 
   const fetchLoanRequest = async () => {
     try {
-      const response = await GetLoans("pending", page, limit);
+      const response = await GetLoans("pending,approved", page, limit);
       if (response.success) {
         setLoanRequest(response.data);
       }
@@ -99,6 +102,25 @@ export default function RequestsPage() {
       });
       if (response.success) {
         message.success("Loan rejected successfully");
+        setIsRejectModalVisible(false);
+        loanRequest.splice(loanRequest.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReturn = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await ReturnLoan({
+        itemId: selectedItem.item_id,
+        returnNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan returned successfully");
         setIsRejectModalVisible(false);
         loanRequest.splice(loanRequest.indexOf(selectedItem), 1);
       }
@@ -174,7 +196,7 @@ export default function RequestsPage() {
             setSelectedItem(record);
           }}
         >
-          WAK
+          Details
         </Button>
       </Space>
     ),
@@ -215,13 +237,15 @@ export default function RequestsPage() {
 
       <LoanRequestDetailModal
         open={isRequestDetailModalVisible}
-        onClose={(status: "reject" | "accept") => {
+        onClose={(status: "reject" | "accept" | "return") => {
           console.log(status);
 
           if (status === "reject") {
             setIsRejectModalVisible(true);
           } else if (status === "accept") {
             handleApprove();
+          } else if (status === "return") {
+            setIsReturnModalVisible(true);
           }
 
           setIsRequestDetailModalVisible(false);
@@ -235,6 +259,17 @@ export default function RequestsPage() {
           setIsRejectModalVisible(false);
           if (payload) {
             handleReject(payload);
+          }
+        }}
+        item={selectedItem}
+      />
+
+      <LoanReturnModal
+        open={isRejectModalVisible}
+        onClose={(payload?: any) => {
+          setIsReturnModalVisible(false);
+          if (payload) {
+            handleReturn(payload);
           }
         }}
         item={selectedItem}

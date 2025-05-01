@@ -4,7 +4,6 @@ import { supabaseAdmin } from "@/lib/supabaseClient";
 import type { ApiResponse, Loan } from "@/types/api";
 import { RequestLoanItemType } from "@/types/requestTypes";
 import { getUserFromToken } from "@/lib/helper/getUserFromToken";
-
 export async function GET(req: Request) {
   try {
     const user = await getUserFromToken(req);
@@ -30,13 +29,19 @@ export async function GET(req: Request) {
         returned_at, 
         return_note,
         items:item_id (name, code, image),
-        profiles:student_id (*)
+        profiles:student_id (*),
+        approved_profiles:approved_by (name, role)  -- Ambil data dari profiles berdasarkan approved_by
       `,
       { count: "exact" }
     );
 
-    if (status && validStatuses.includes(status)) {
-      query = query.eq("status", status);
+    if (status) {
+      const statuses = status.split(",");
+      if (statuses.every((s) => validStatuses.includes(s))) {
+        query = query.in("status", statuses);
+      } else {
+        query = query.eq("status", status);
+      }
     }
 
     if (user.role === "siswa") {
@@ -50,7 +55,7 @@ export async function GET(req: Request) {
     }
 
     const loansWithStudent: RequestLoanItemType[] = data.map((loan: any) => {
-      const { student_id, ...loanData } = loan;
+      const { student_id, approved_by, ...loanData } = loan;
       return {
         ...loanData,
         student: {
@@ -59,7 +64,15 @@ export async function GET(req: Request) {
           role: loan.profiles.role,
           email: loan.profiles.email,
         },
+        approved_by: approved_by
+          ? {
+              // Jika approved_by tidak null
+              name: loan.approved_profiles.name,
+              role: loan.approved_profiles.role,
+            }
+          : null,
         profiles: undefined,
+        approved_profiles: undefined, // Menghapus profiles yang terkait dengan approved_by setelah digunakan
       };
     });
 
