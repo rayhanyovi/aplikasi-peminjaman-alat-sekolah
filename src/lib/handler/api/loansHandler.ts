@@ -1,14 +1,25 @@
 import getToken from "@/lib/helper/getToken";
-import { LoanRequest } from "@/types/api";
+import { LoanRequest, LoanRequestFilter } from "@/types/api";
 
 export const GetLoans = async (
-  status?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  filter: LoanRequestFilter = {}
 ) => {
   const params = new URLSearchParams();
-  if (status) {
-    params.append("status", status);
+  if (filter) {
+    if (filter.status) {
+      params.append("status", filter.status);
+    }
+    if (filter.name) {
+      params.append("name", filter.name);
+    }
+    if (filter.startDate) {
+      params.append("start", filter.startDate.toISOString());
+    }
+    if (filter.endDate) {
+      params.append("start", filter.endDate.toISOString());
+    }
   }
   params.append("page", page.toString());
   params.append("limit", limit.toString());
@@ -44,17 +55,25 @@ export const RequestLoan = async ({
 };
 
 export const GetLoansHistory = async (
-  status?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  filter: LoanRequestFilter = {}
 ) => {
   const params = new URLSearchParams();
 
-  console.log("PARAMS ADALAH:", status, page, limit);
-
-  if (status) {
-    params.append("status", status);
+  if (filter.status) {
+    params.append("status", filter.status);
   }
+  if (filter.name) {
+    params.append("name", filter.name);
+  }
+  if (filter.startDate) {
+    params.append("startDate", filter.startDate.toISOString());
+  }
+  if (filter.endDate) {
+    params.append("endDate", filter.endDate.toISOString());
+  }
+
   params.append("page", page.toString());
   params.append("limit", limit.toString());
 

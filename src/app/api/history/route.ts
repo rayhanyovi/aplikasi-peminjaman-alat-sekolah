@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseClient";
-import type { ApiResponse, Item, Loan } from "@/types/api";
+import type { ApiResponse } from "@/types/api";
 import { RequestLoanItemType } from "@/types/requestTypes";
 import { getUserFromToken } from "@/lib/helper/getUserFromToken";
+
 export async function GET(req: Request) {
   try {
     console.debug("🔍 Incoming request:", req.url);
@@ -12,53 +13,89 @@ export async function GET(req: Request) {
     console.debug("👤 Decoded user role:", userRole);
 
     const url = new URL(req.url);
-    // const status = url.searchParams.get("status");
     const limitParam = url.searchParams.get("limit") || "10";
     const pageParam = url.searchParams.get("page") || "1";
-    const validStatuses = ["pending", "approved", "rejected", "returned"];
+    const status = url.searchParams.get("status");
+    const name = url.searchParams.get("name");
+    const startDate = url.searchParams.get("startDate");
+    const endDate = url.searchParams.get("endDate");
 
+    const validStatuses = ["pending", "approved", "rejected", "returned"];
     const limit = parseInt(limitParam);
     const page = parseInt(pageParam);
-    console.debug("📄 Pagination info:", { page, limit });
-
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
+    // Optional: Get matching item IDs if name is provided
+    let matchingItemIds: number[] | undefined;
+    if (name) {
+      const { data: items, error: itemError } = await supabaseAdmin
+        .from("items")
+        .select("id")
+        .ilike("name", `%${name}%`);
+
+      if (itemError) throw new Error(itemError.message);
+      matchingItemIds = items?.map((item) => item.id);
+
+      // If no items match, return early with empty data
+      if (!matchingItemIds || matchingItemIds.length === 0) {
+        return NextResponse.json<ApiResponse<RequestLoanItemType[]>>({
+          success: true,
+          count: 0,
+          data: [],
+          message: "No loans match the provided item name",
+        });
+      }
+    }
+
     let query = supabaseAdmin.from("loans").select(
       `
-    id, 
-    item_id, 
-    student_id, 
-    status, 
-    requested_at, 
-    approved_at, 
-    approved_by, 
-    rejected_at, 
-    rejected_by, 
-    rejection_notice, 
-    returned_at, 
-    return_note,
-    items:item_id (name, image)
-  `,
+        id, 
+        item_id, 
+        student_id, 
+        status, 
+        requested_at, 
+        approved_at, 
+        approved_by, 
+        rejected_at, 
+        rejected_by, 
+        rejection_notice, 
+        returned_at, 
+        return_note,
+        items:item_id (name, image)
+      `,
       { count: "exact" }
     );
 
+    // Apply filters
     if (userRole === "siswa") {
-      query = query.eq("student_id", userRole);
+      query = query.eq("student_id", user.id);
     }
 
-    query = query.range(from, to);
+    if (status && validStatuses.includes(status)) {
+      query = query.eq("status", status);
+    }
 
-    const { data, count, error } = await query.order("requested_at", {
-      ascending: false,
-    });
+    if (startDate) {
+      query = query.gte("requested_at", startDate);
+    }
+
+    if (endDate) {
+      query = query.lte("requested_at", endDate);
+    }
+
+    if (matchingItemIds) {
+      query = query.in("item_id", matchingItemIds);
+    }
+
+    query = query.range(from, to).order("requested_at", { ascending: false });
+
+    const { data, count, error } = await query;
 
     if (error) {
       console.error("❌ Supabase error:", error.message);
       throw new Error(error.message);
     }
-
-    console.debug("✅ Data fetched:", data);
 
     const loansWithStudent: RequestLoanItemType[] = data.map((loan: any) => {
       const { student_id, ...loanData } = loan;

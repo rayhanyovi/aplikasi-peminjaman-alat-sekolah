@@ -13,7 +13,7 @@ export const getStatusTag = (status: string) => {
     case "rejected":
       return <Tag color="red">Rejected</Tag>;
     case "returned":
-      return <Tag color="purple ">Returned</Tag>;
+      return <Tag color="cyan">Returned</Tag>;
     default:
       return <Tag>{status}</Tag>;
   }

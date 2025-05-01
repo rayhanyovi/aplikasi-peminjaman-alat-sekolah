@@ -89,6 +89,14 @@ export interface LoanRequest {
   itemId: number;
   requestNote: string;
   expectedReturn: Date;
+  filter?: LoanRequestFilter;
+}
+
+export interface LoanRequestFilter {
+  name?: string;
+  status?: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
 export interface LoanApproval {

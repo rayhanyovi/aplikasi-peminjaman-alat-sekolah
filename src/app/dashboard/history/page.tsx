@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
-import { Table, Input, Typography, Card, DatePicker } from "antd";
+import { Table, Input, Typography, Card, DatePicker, Select } from "antd";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { GetLoans, GetLoansHistory } from "@/lib/handler/api/loansHandler";
 import "@ant-design/v5-patch-for-react-19";
 import { getStatusTag } from "@/lib/helper/getStatusTag";
+import dayjs from "dayjs";
 
 // import { history, getItemById, getUserById } from "@/dummy-data";
 
@@ -21,17 +22,23 @@ export default function HistoryPage() {
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState();
   const [dateRange, setDateRange] = useState<any>(null);
   const [histories, setHistories] = useState<any>([]);
 
   useEffect(() => {
     fetchLoanHistory();
-  }, [page, limit]);
+  }, [page, limit, searchText, dateRange, status]);
 
   const fetchLoanHistory = async () => {
     setIsLoading(true);
     try {
-      const response = await GetLoansHistory(undefined, page, limit);
+      const response = await GetLoansHistory(page, limit, {
+        status: status || undefined,
+        name: searchText || undefined,
+        startDate: dateRange?.[0]?.toDate(),
+        endDate: dateRange?.[1]?.toDate(),
+      });
       if (response.success) {
         setHistories(response.data);
         setTotal(response.count);
@@ -53,7 +60,6 @@ export default function HistoryPage() {
         return item ? (
           <Link href={`/dashboard/items/${record}`}>{item.items.name}</Link>
         ) : (
-          // <p onClick={() => console.log(item)}>{record}</p>
           "Unknown Item"
         );
       },
@@ -68,11 +74,15 @@ export default function HistoryPage() {
       title: "Borrow Date",
       dataIndex: "approved_at",
       key: "borrowDate",
+      render: (date: string) =>
+        date ? dayjs(date).format("dddd, DD MMMM YYYY") : "-",
     },
     {
       title: "Return Date",
       dataIndex: "returned_at",
       key: "returnDate",
+      render: (date: string) =>
+        date ? dayjs(date).format("dddd, DD MMMM YYYY") : "-",
     },
     {
       title: "Action",
@@ -100,6 +110,20 @@ export default function HistoryPage() {
             prefix={<Search size={16} className="mr-1" />}
             className="max-w-md"
           />
+
+          <Select
+            placeholder="Status"
+            className="w-28"
+            allowClear
+            onChange={(value) => setStatus(value)}
+            value={status}
+          >
+            <Select.Option value="pending">Pending</Select.Option>
+            <Select.Option value="approved">Approved</Select.Option>
+            <Select.Option value="rejected">Rejected</Select.Option>
+            <Select.Option value="returned">Returned</Select.Option>
+          </Select>
+
           <RangePicker
             onChange={(dates) => setDateRange(dates)}
             placeholder={["Start Date", "End Date"]}

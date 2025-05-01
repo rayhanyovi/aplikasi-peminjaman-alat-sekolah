@@ -64,7 +64,9 @@ export default function RequestsPage() {
 
   const fetchLoanRequest = async () => {
     try {
-      const response = await GetLoans("pending,approved", page, limit);
+      const response = await GetLoans(page, limit, {
+        status: "approved,pending",
+      });
       if (response.success) {
         setLoanRequest(response.data);
       }
