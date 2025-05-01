@@ -37,13 +37,15 @@ export default function ItemsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-  // const [isItemDetailModalOpen, setIsItemDetailModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
 
   useEffect(() => {
     GetAllItems();
-  }, [statusFilter]);
+  }, [statusFilter, page, limit]);
 
   const handleOpenModal = (id: string) => {
     // setIsItemDetailModalOpen(true);
@@ -51,16 +53,18 @@ export default function ItemsPage() {
   };
 
   const handleCloseModal = () => {
-    // setIsItemDetailModalOpen(false);
-    router.push("/dashboard/items"); // Balikin URL pas modal ditutup
+    router.push("/dashboard/items");
   };
 
-  const isItemDetailModalOpen = !!itemId; // Kalau ada ID di URL, modal otomatis kebuka
+  const isItemDetailModalOpen = !!itemId;
 
   const GetAllItems = async () => {
     setIsLoading(true);
-    await GetItems(statusFilter ?? "", 1, 10)
-      .then((v) => setItems(v.data)) // Ensure the response is the correct type
+    await GetItems(statusFilter ?? "", page, limit)
+      .then((v) => {
+        setItems(v.data);
+        setTotal(v.count);
+      }) // Ensure the response is the correct type
       .catch((e) => message.error(e))
       .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
   };
@@ -157,7 +161,15 @@ export default function ItemsPage() {
           columns={columns}
           dataSource={filteredItems}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{
+            onChange(page, pageSize) {
+              console.log(page, pageSize);
+              setPage(page);
+              setLimit(pageSize);
+            },
+            total: total,
+            defaultPageSize: 10,
+          }}
         />
       </Card>
 

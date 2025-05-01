@@ -228,7 +228,7 @@ export default function ItemDetailPage() {
           <Image
             src={item.image}
             alt="item"
-            className="flex md:min-h-48 !w-full object-cover"
+            className="flex !w-full md:!max-w-72 !aspect-square object-cover"
           />
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 flex-1">
             <div className="flex-1 ">

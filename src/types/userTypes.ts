@@ -4,3 +4,4 @@ export interface UserProfilesType {
   role: "siswa" | "admin" | "superadmin";
   email: string;
 }
+

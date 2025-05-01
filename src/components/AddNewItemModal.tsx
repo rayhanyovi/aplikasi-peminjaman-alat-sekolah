@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
 import { Form, Input, Select, Button, Typography, message, Modal } from "antd";
 import { AddNewItem } from "@/lib/handler/api/itemsHandler";
+import ImageUploader from "./ImageUploader";
+import { uploadImageHandler } from "@/lib/handler/api/imageHandler";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -15,15 +17,35 @@ export default function AddItemModal({ open, onClose }: any) {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null); // Ubah dari imageUrl ke imageFile
 
   const handleSubmit = async (values: any) => {
     setIsLoading(true);
-    await AddNewItem(values);
-    setTimeout(() => {
-      message.success("Equipment added successfully");
+
+    if (!imageFile) {
+      message.error("Please upload an image.");
       setIsLoading(false);
-      router.push("/dashboard/items");
-    }, 1000);
+      return;
+    }
+
+    try {
+      const uploadResponse = await uploadImageHandler(imageFile);
+
+      const valuesWithImage = {
+        ...values,
+        image: uploadResponse.url,
+      };
+
+      await AddNewItem(valuesWithImage);
+
+      message.success("Equipment added successfully");
+      // router.push("/dashboard/items");
+    } catch (error) {
+      message.error("Failed to upload image or add equipment");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -44,18 +66,7 @@ export default function AddItemModal({ open, onClose }: any) {
         }}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Form.Item
-            name="image"
-            label="Image Link"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the equipment name",
-              },
-            ]}
-          >
-            <Input placeholder="Enter Image Link" />
-          </Form.Item>
+          <ImageUploader onSuccess={(file) => setImageFile(file)} />
 
           <Form.Item
             name="name"
@@ -100,25 +111,9 @@ export default function AddItemModal({ open, onClose }: any) {
           </Form.Item>
         </div>
 
-        {/* <Form.Item
-          name="description"
-          label="Description"
-          rules={[
-            {
-              required: true,
-              message: "Please enter a description",
-            },
-          ]}
-        >
-          <TextArea
-            rows={4}
-            placeholder="Enter a detailed description of the equipment"
-          />
-        </Form.Item> */}
-
         <Form.Item className="flex justify-end">
           <Button type="primary" htmlType="submit" loading={isLoading}>
-            Add Equipment
+            Confirm Add Equipment
           </Button>
         </Form.Item>
       </Form>

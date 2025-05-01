@@ -25,6 +25,8 @@ export async function GET(req: Request) {
       .select("id, name, email, role, created_at", { count: "exact" })
       .range(from, to);
 
+
+      
     if (role) {
       query.eq("role", role);
     }

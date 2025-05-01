@@ -47,16 +47,12 @@ export async function GET(req: Request) {
     });
 
     const totalCount = count || 0;
-    const next = page * limit < totalCount;
-    const prev = page > 1;
 
     return NextResponse.json<ApiResponse<Item[]>>(
       {
         success: true,
         data: processedItems as Item[],
         count: totalCount,
-        next,
-        prev,
         message: "Items retrieved successfully",
       },
       { status: 200 }
