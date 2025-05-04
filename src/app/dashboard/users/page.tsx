@@ -49,7 +49,7 @@ export default function UsersPage() {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [uploadingCsv, setUploadingCsv] = useState(false);
-  const [csvUsers, setCsvUsers] = useState<any[]>([]); // Store users from CSV with progress status
+  const [csvUsers, setCsvUsers] = useState<any[]>([]);
 
   useEffect(() => {
     handleGetUsers();

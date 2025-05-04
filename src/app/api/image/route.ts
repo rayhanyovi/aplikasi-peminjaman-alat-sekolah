@@ -20,11 +20,16 @@ export async function POST(req: Request) {
     const fileName = `image_${timestamp}.${fileExt}`;
     const filePath = `items/${fileName}`;
 
+    // Add metadata to track file size
+    const fileSizeKB = Math.round(arrayBuffer.byteLength / 1024);
+    console.log(`[API] Uploading image: ${fileName}, Size: ${fileSizeKB}KB`);
+
     const { error } = await supabaseAdmin.storage
       .from("images.item")
       .upload(filePath, arrayBuffer, {
         contentType: "image/webp",
         upsert: true,
+        cacheControl: "3600", // Add cache control for better performance
       });
 
     if (error) {
@@ -39,6 +44,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       url: publicUrlData.publicUrl,
+      size: fileSizeKB,
     });
   } catch (err: any) {
     console.error("[API] Fatal error:", err.message);
