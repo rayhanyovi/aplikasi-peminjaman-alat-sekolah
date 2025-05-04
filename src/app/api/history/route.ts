@@ -6,11 +6,9 @@ import { getUserFromToken } from "@/lib/helper/getUserFromToken";
 
 export async function GET(req: Request) {
   try {
-    console.debug("🔍 Incoming request:", req.url);
 
     const user = await getUserFromToken(req);
     const userRole = user.role;
-    console.debug("👤 Decoded user role:", userRole);
 
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit") || "10";

@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
   const GetRequestPendingItems = async () => {
     setIsLoading(true);
-    await GetLoans("pending", 1, 5)
+    await GetLoans(1, 5, { status: "pending" })
       .then((v) => setPendingRequests(v.data)) // Ensure the response is the correct type
       .catch((e) => message.error(e))
       .finally(() => setIsLoading(false)); // Fix to set loading state to false when done

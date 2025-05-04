@@ -49,7 +49,6 @@ export async function GET(req: Request) {
       throw new Error(error.message);
     }
 
-    console.debug("Fetched users data:", data);
     return NextResponse.json<ApiResponse<User[]>>(
       {
         success: true,

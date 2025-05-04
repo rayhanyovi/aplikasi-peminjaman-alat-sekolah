@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { Upload, message } from "antd";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
 import type { UploadProps, UploadFile } from "antd";
-import type { RcFile } from "antd/es/upload";
-import { uploadImageHandler } from "@/lib/handler/api/imageHandler";
 
 interface ImageUploaderProps {
   onSuccess?: (file: File) => void; // Ubah dari string ke File
