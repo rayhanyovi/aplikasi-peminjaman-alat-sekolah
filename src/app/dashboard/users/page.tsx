@@ -23,7 +23,6 @@ import { AddUser, GetUsers } from "@/lib/handler/api/userHandler";
 // import "@ant-design/v5-patch-for-react-19";
 import { handleCsvUpload } from "@/lib/helper/csvUploadHandler";
 
-
 const { Title } = Typography;
 const { Option } = Select;
 
@@ -237,7 +236,7 @@ export default function UsersPage() {
       key: "action",
       render: (_: any, record: any) => (
         <Space size="small">
-          <Button type="link" size="small">
+          <Button type="link" size="small" disabled>
             Edit
           </Button>
         </Space>
