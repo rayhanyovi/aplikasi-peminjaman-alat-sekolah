@@ -16,6 +16,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  avatar_url?: string;
 };
 
 type AuthContextType = {
@@ -23,6 +24,7 @@ type AuthContextType = {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  updateUserData: (data: Partial<User>) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -85,8 +87,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("user_session");
   };
 
+  const updateUserData = (data: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+      localStorage.setItem("user_spas", JSON.stringify(updatedUser));
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{ user, login, logout, isLoading, updateUserData }}
+    >
       {children}
     </AuthContext.Provider>
   );

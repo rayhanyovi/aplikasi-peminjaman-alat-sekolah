@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/authContext";
 import { Form, Input, Select, Button, Typography, message, Modal } from "antd";
-import { AddNewItem } from "@/lib/handler/api/itemsHandler";
+import { AddNewItem, UpdateItem } from "@/lib/handler/api/itemsHandler";
 import ImageUploader from "./ImageUploader";
 import { uploadImageHandler } from "@/lib/handler/api/imageHandler";
 
@@ -29,17 +29,24 @@ export default function AddItemModal({ open, onClose }: any) {
     }
 
     try {
-      const uploadResponse = await uploadImageHandler(imageFile);
+      const response = await AddNewItem(values);
+
+      const uploadResponse = await uploadImageHandler(
+        imageFile,
+        "item",
+        response.data.id
+      );
 
       const valuesWithImage = {
-        ...values,
+        ...response,
         image: uploadResponse.url,
       };
 
-      await AddNewItem(valuesWithImage);
-
-      message.success("Equipment added successfully");
-      // router.push("/dashboard/items");
+      const result = await UpdateItem(response.data.id, valuesWithImage);
+      if (result.success) {
+        message.success("Equipment added successfully");
+        router.refresh();
+      }
     } catch (error) {
       message.error("Failed to upload image or add equipment");
       console.error(error);
@@ -50,6 +57,7 @@ export default function AddItemModal({ open, onClose }: any) {
 
   return (
     <Modal
+      title="Tambahkan Item"
       open={open}
       onCancel={() => {
         onClose(false);
@@ -61,58 +69,50 @@ export default function AddItemModal({ open, onClose }: any) {
         form={form}
         layout="vertical"
         onFinish={handleSubmit}
-        initialValues={{
-          status: "available",
-        }}
+        className="flex flex-col"
       >
-        <ImageUploader size={288} onSuccess={(file) => setImageFile(file)} />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Form.Item
-            name="name"
-            label="Equipment Name"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the equipment name",
-              },
-            ]}
-          >
-            <Input placeholder="Enter equipment name" />
-          </Form.Item>
+        <div className="flex flex-row gap-10 !my-8">
+          <div className="mt-0 flex-shrink-0">
+            <p className="mb-2">
+              <span className="text-red-500 text-sm">*</span> Upload Gambar
+            </p>
+            <ImageUploader
+              size={288}
+              onSuccess={(file) => setImageFile(file)}
+            />
+          </div>
+          <div className="flex flex-col gap-0 w-full">
+            <Form.Item
+              name="name"
+              label="Equipment Name"
+              rules={[
+                {
+                  required: true,
+                  message: "Please enter the equipment name",
+                },
+              ]}
+            >
+              <Input placeholder="Enter equipment name" />
+            </Form.Item>
 
-          <Form.Item
-            name="code"
-            label="Serial Number"
-            rules={[
-              {
-                required: true,
-                message: "Please enter the serial number",
-              },
-            ]}
-          >
-            <Input placeholder="Enter serial number" />
-          </Form.Item>
-
-          <Form.Item
-            name="status"
-            label="Status"
-            rules={[
-              {
-                required: true,
-                message: "Please select a status",
-              },
-            ]}
-          >
-            <Select placeholder="Select a status">
-              <Option value="tersedia">Tersedia</Option>
-              <Option value="dipinjam">Dipinjam</Option>
-            </Select>
-          </Form.Item>
+            <Form.Item
+              name="code"
+              label="Serial Number"
+              rules={[
+                {
+                  required: true,
+                  message: "Please enter the serial number",
+                },
+              ]}
+            >
+              <Input placeholder="Enter serial number" />
+            </Form.Item>
+          </div>
         </div>
 
-        <Form.Item className="flex justify-end">
+        <Form.Item className="flex justify-end !m-0">
           <Button type="primary" htmlType="submit" loading={isLoading}>
-            Confirm Add Equipment
+            Konfirmasi
           </Button>
         </Form.Item>
       </Form>

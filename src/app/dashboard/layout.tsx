@@ -82,6 +82,7 @@ export default function DashboardLayout({
           <span>Profile</span>
         </div>
       ),
+      onClick: () => router.push("/dashboard/profile"),
     },
     {
       key: "logout",
@@ -228,6 +229,7 @@ export default function DashboardLayout({
                     backgroundColor: token.colorPrimary,
                     color: token.colorWhite,
                   }}
+                  src={user.avatar_url}
                 >
                   {user.name.charAt(0)}
                 </Avatar>

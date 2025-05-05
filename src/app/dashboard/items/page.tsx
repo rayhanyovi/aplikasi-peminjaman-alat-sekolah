@@ -123,7 +123,6 @@ export default function ItemsPage() {
         await new Promise((resolve) => setTimeout(resolve, 100));
 
         try {
-          // Process image if URL is provided
           let imageUrl = "https://placehold.co/600x600/webp";
 
           if (currentItem.image) {
@@ -135,7 +134,11 @@ export default function ItemsPage() {
               )
             );
 
-            const imageResult = await uploadImageFromUrl(currentItem.image);
+            const imageResult = await uploadImageFromUrl(
+              currentItem.image,
+              "item",
+              currentItem.id
+            );
             if (imageResult.success && imageResult.url) {
               imageUrl = imageResult.url;
             }

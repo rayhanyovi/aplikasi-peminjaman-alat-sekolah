@@ -60,8 +60,8 @@ export const AddMultipleUser = async (users: any[]) => {
 };
 
 export const GetUsers = async (
-  page: number = 1,
-  limit: number = 10,
+  page = 1,
+  limit = 10,
   filters: { name?: string; role?: string } = {}
 ) => {
   const params = new URLSearchParams();
@@ -99,6 +99,70 @@ export const GetUsers = async (
 export const GetAllUsers = async () => {
   const response = await fetch("/api/users", {
     method: "GET",
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data.error || "Something went wrong");
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  return data;
+};
+
+export const GetUserProfile = async () => {
+  const response = await fetch("/api/users/profile", {
+    method: "GET",
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data.error || "Something went wrong");
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  return data;
+};
+
+export const UpdateUserProfile = async (profileData: {
+  avatar_url: string;
+}) => {
+  const response = await fetch("/api/users/profile", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(profileData),
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const error = new Error(data.error || "Something went wrong");
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  return data;
+};
+
+export const UpdateUserPassword = async (
+  currentPassword: string,
+  newPassword: string
+) => {
+  const response = await fetch("/api/users/password", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
     credentials: "include",
   });
 

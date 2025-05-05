@@ -1,7 +1,6 @@
 export interface UserProfilesType {
-  id: number;
+  id: string;
   name: string;
   role: "siswa" | "admin" | "superadmin";
   email: string;
 }
-

@@ -60,9 +60,12 @@ export default function EditItemModal({
     try {
       let imageUrl = currentImage;
 
-      // Upload new image if provided
       if (imageFile) {
-        const uploadResponse = await uploadImageHandler(imageFile);
+        const uploadResponse = await uploadImageHandler(
+          imageFile,
+          "item",
+          itemId
+        );
         if (uploadResponse.success) {
           imageUrl = uploadResponse.url;
         } else {

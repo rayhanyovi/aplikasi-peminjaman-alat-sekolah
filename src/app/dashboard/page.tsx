@@ -69,25 +69,25 @@ export default function DashboardPage() {
   const GetRequestPendingItems = async () => {
     setIsLoading(true);
     await GetLoans(1, 5, { status: "pending" })
-      .then((v) => setPendingRequests(v.data)) // Ensure the response is the correct type
+      .then((v) => setPendingRequests(v.data))
       .catch((e) => message.error(e))
-      .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
+      .finally(() => setIsLoading(false));
   };
 
   const GetAvailableItems = async () => {
     setIsLoading(true);
     await GetItems("tersedia")
-      .then((v) => setAvailableItems(v.data)) // Ensure the response is the correct type
+      .then((v) => setAvailableItems(v.data))
       .catch((e) => message.error(e))
-      .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
+      .finally(() => setIsLoading(false));
   };
 
   const GetBorrowedItems = async () => {
     setIsLoading(true);
     await GetLoans(1, 5, { status: "approved" })
-      .then((v) => setBorrowedItems(v.data)) // Ensure the response is the correct type
+      .then((v) => setBorrowedItems(v.data))
       .catch((e) => message.error(e))
-      .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
+      .finally(() => setIsLoading(false));
   };
 
   const handleApprove = async () => {
@@ -203,7 +203,6 @@ export default function DashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]}>
-        {/* {user?.role === "siswa" && ( */}
         <Col xs={24} lg={12}>
           <Card
             title={
@@ -269,7 +268,6 @@ export default function DashboardPage() {
             )}
           </Card>
         </Col>
-        {/* )} */}
 
         <Col xs={24} lg={12}>
           <Card

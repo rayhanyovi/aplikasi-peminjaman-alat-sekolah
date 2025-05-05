@@ -79,8 +79,16 @@ export default function ItemDetailPage() {
 
       let imageUrl = itemData.item.image;
 
+      if (itemId === undefined) {
+        throw new Error("Item ID is required");
+      }
+
       if (imageFile) {
-        const uploadResponse = await uploadImageHandler(imageFile);
+        const uploadResponse = await uploadImageHandler(
+          imageFile,
+          "item",
+          itemId
+        );
         if (uploadResponse.success) {
           imageUrl = uploadResponse.url;
         } else {

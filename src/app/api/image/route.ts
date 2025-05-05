@@ -5,6 +5,8 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const type = formData.get("type") as string;
+    const id = formData.get("id") as string;
 
     if (!file) {
       console.warn("[API] Missing file");
@@ -14,18 +16,24 @@ export async function POST(req: Request) {
       );
     }
 
+    if (!type) {
+      console.warn("[API] Missing type");
+      return NextResponse.json(
+        { success: false, error: "Missing type" },
+        { status: 400 }
+      );
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const fileExt = "webp";
-    const timestamp = Date.now(); // atau bisa pakai uuid kalau mau lebih aman
-    const fileName = `image_${timestamp}.${fileExt}`;
-    const filePath = `items/${fileName}`;
+    const fileName = `${id}.${fileExt}`;
+    const filePath = `${type}/${fileName}`;
 
     // Add metadata to track file size
     const fileSizeKB = Math.round(arrayBuffer.byteLength / 1024);
-    console.log(`[API] Uploading image: ${fileName}, Size: ${fileSizeKB}KB`);
 
     const { error } = await supabaseAdmin.storage
-      .from("images.item")
+      .from("images")
       .upload(filePath, arrayBuffer, {
         contentType: "image/webp",
         upsert: true,
@@ -38,7 +46,7 @@ export async function POST(req: Request) {
     }
 
     const { data: publicUrlData } = supabaseAdmin.storage
-      .from("images.item") // Pastikan menggunakan bucket yang sama
+      .from("images")
       .getPublicUrl(filePath);
 
     return NextResponse.json({

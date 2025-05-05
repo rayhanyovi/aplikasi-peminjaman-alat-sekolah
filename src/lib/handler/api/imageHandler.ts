@@ -3,9 +3,16 @@ import {
   WebpImageConverterFromUrl,
 } from "@/lib/helper/webpConverterHelper"; // pastikan path-nya sesuai
 
-export const uploadImageHandler = async (file: File) => {
+export const uploadImageHandler = async (
+  file: File,
+  type: string,
+  id: string
+) => {
   try {
     const formData = await WebpImageConverter(file);
+
+    formData.append("type", type);
+    formData.append("id", id);
 
     const res = await fetch("/api/image", {
       method: "POST",
@@ -23,7 +30,11 @@ export const uploadImageHandler = async (file: File) => {
   }
 };
 
-export const uploadImageFromUrl = async (imageUrl: string) => {
+export const uploadImageFromUrl = async (
+  imageUrl: string,
+  type: string,
+  id: string
+) => {
   try {
     if (!imageUrl) {
       return { success: true, url: null };
@@ -34,6 +45,9 @@ export const uploadImageFromUrl = async (imageUrl: string) => {
     }
 
     const formData = await WebpImageConverterFromUrl(imageUrl);
+
+    formData.append("type", type);
+    formData.append("id", id);
 
     const res = await fetch("/api/image", {
       method: "POST",
