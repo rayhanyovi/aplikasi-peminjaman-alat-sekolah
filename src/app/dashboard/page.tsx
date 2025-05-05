@@ -362,7 +362,7 @@ export default function DashboardPage() {
           />
 
           <LoanReturnModal
-            open={isRejectModalVisible}
+            open={isReturnModalVisible}
             onClose={(payload?: any) => {
               setIsReturnModalVisible(false);
               if (payload) {

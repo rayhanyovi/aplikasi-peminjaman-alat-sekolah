@@ -1,12 +1,40 @@
-import { Modal, Typography, Tag, Image, Row, Col, Divider, Button } from "antd";
-import dayjs from "dayjs";
-import LoanRejectModal from "./LoanRejectModal";
-import { useAuth } from "@/context/authContext";
+"use client";
 
-const { Title, Text, Paragraph } = Typography;
+import type React from "react";
+
+import { useState } from "react";
+import {
+  Modal,
+  Typography,
+  Tag,
+  Image,
+  Button,
+  Descriptions,
+  Space,
+  Badge,
+} from "antd";
+import dayjs from "dayjs";
+import { useAuth } from "@/context/authContext";
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  User,
+  Mail,
+  FileText,
+  AlertCircle,
+  CheckSquare,
+} from "lucide-react";
+import { getStatusTag } from "@/lib/helper/getStatusTag";
+
+const { Title, Text } = Typography;
 
 export default function LoanRequestDetailModal({ item, open, onClose }: any) {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+
   if (!item) return null;
 
   const userRole = user?.role;
@@ -27,147 +55,270 @@ export default function LoanRequestDetailModal({ item, open, onClose }: any) {
     return_note,
   } = item;
 
-  const statusColorMap: any = {
-    pending: "orange",
-    approved: "green",
-    rejected: "red",
-    returned: "blue",
+  const handleAction = (action: string) => {
+    setLoading(true);
+    // Simulate a delay for the loading state
+    setTimeout(() => {
+      setLoading(false);
+      onClose(action);
+    }, 500);
   };
 
-  return (
-    <>
-      <Modal
-        title="Detail Peminjaman"
-        open={open}
-        onCancel={() => onClose()}
-        footer={
-          userRole === "admin" || userRole === "superadmin" ? (
-            <>
-              <Divider />
-              <div className="flex flex-row gap-4 w-full items-end justify-end">
-                {status === "pending" ? (
-                  <>
-                    {" "}
-                    <Button
-                      type="primary"
-                      className="w-32"
-                      onClick={() => onClose("accept")}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      type="primary"
-                      danger
-                      ghost
-                      className="w-32"
-                      onClick={() => onClose("reject")}
-                    >
-                      Tolak
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    type="primary"
-                    className="w-32"
-                    onClick={() => onClose("reject")}
-                  >
-                    Confirm Return
-                  </Button>
-                )}
-              </div>
-            </>
-          ) : null
-        }
-        width={700}
-      >
-        <div className="flex flex-row gap-8">
-          {/* Left Column - Image */}
+  const isOverdue =
+    expected_return_at &&
+    status === "approved" &&
+    dayjs().isAfter(dayjs(expected_return_at));
 
-          <div className="flex flex-col w-48">
-            <Image
-              src={items?.image}
-              alt={items?.name}
-              width="100%"
-              style={{ borderRadius: 8 }}
-            />
+  return (
+    <Modal
+      title={
+        <div className="flex items-center gap-2">
+          <span>Equipment Loan Details</span>
+        </div>
+      }
+      open={open}
+      onCancel={() => onClose()}
+      footer={
+        userRole === "admin" || userRole === "superadmin" ? (
+          <div className="flex justify-end gap-3 mt-4">
+            {status === "pending" ? (
+              <>
+                <Button
+                  type="primary"
+                  icon={<CheckSquare size={16} />}
+                  onClick={() => handleAction("accept")}
+                  loading={loading}
+                >
+                  Approve Request
+                </Button>
+                <Button
+                  type="primary"
+                  danger
+                  ghost
+                  icon={<XCircle size={16} />}
+                  onClick={() => handleAction("reject")}
+                  loading={loading}
+                >
+                  Reject Request
+                </Button>
+              </>
+            ) : status === "approved" ? (
+              <Button
+                type="primary"
+                icon={<RotateCcw size={16} />}
+                onClick={() => handleAction("return")}
+                loading={loading}
+              >
+                Process Return
+              </Button>
+            ) : null}
+          </div>
+        ) : null
+      }
+      width={800}
+      centered
+      className="loan-detail-modal"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+        {/* Left Column - Image and Item Details */}
+        <div className="md:col-span-1">
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-full aspect-square overflow-hidden rounded-lg mb-3 bg-gray-50 flex items-center justify-center">
+              <Image
+                src={items?.image || "/placeholder.svg?height=200&width=200"}
+                alt={items?.name}
+                className="object-contain"
+                style={{ maxHeight: "100%" }}
+                fallback="/placeholder.svg?height=200&width=200"
+              />
+            </div>
+            <div className="text-center w-full">
+              <Title level={5} className="mb-1 line-clamp-2">
+                {items?.name}
+              </Title>
+              <Text type="secondary" className="text-sm">
+                Code: {items?.code}
+              </Text>
+            </div>
           </div>
 
-          {/* Right Column - Details */}
-          <Col xs={24} sm={16}>
-            <Title level={4} style={{ marginBottom: 4 }}>
-              {items?.name}
-            </Title>
-            <Text type="secondary">Kode Barang: {items?.code}</Text>
-            <div style={{ marginTop: 8 }}>
-              <Tag color={statusColorMap[status] || "default"}>
-                {status?.toUpperCase()}
-              </Tag>
+          {isOverdue && (
+            <div className="mt-4 bg-red-50 p-3 rounded-md border border-red-200">
+              <div className="flex items-center gap-2 text-red-600 mb-1">
+                <AlertCircle size={16} />
+                <Text strong className="text-red-600">
+                  Overdue
+                </Text>
+              </div>
+              <Text className="text-red-600 text-sm">
+                This item was due to be returned on{" "}
+                {dayjs(expected_return_at).format("MMM D, YYYY")}
+              </Text>
             </div>
-
-            <Divider style={{ margin: "12px 0" }} />
-
-            <Text strong>Peminjam:</Text>
-            <Paragraph style={{ marginBottom: 4 }}>
-              {student?.name} ({student?.role})
-            </Paragraph>
-            <Text type="secondary">{student?.email}</Text>
-
-            <Divider style={{ margin: "12px 0" }} />
-
-            <Text strong>Tanggal Request:</Text>
-            <Paragraph>{dayjs(requested_at).format("DD MMM YYYY")}</Paragraph>
-
-            <Text strong>Estimasi Pengembalian:</Text>
-            <Paragraph>
-              {dayjs(expected_return_at).format("DD MMM YYYY")}
-            </Paragraph>
-
-            <Text strong>Tujuan Peminjaman:</Text>
-            <Paragraph>{request_note || "-"}</Paragraph>
-          </Col>
+          )}
         </div>
 
-        {(approved_at || rejected_at || returned_at) && (
-          <>
-            <Divider />
+        {/* Right Column - Loan Details */}
+        <div className="md:col-span-2">
+          <Descriptions
+            title="Borrower Information"
+            column={1}
+            bordered
+            size="small"
+            className="mb-4"
+            labelStyle={{ fontWeight: 500, width: "140px" }}
+          >
+            <Descriptions.Item
+              label={
+                <Space>
+                  <User size={14} />
+                  <span>Name</span>
+                </Space>
+              }
+            >
+              {student?.name}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <Space>
+                  <Mail size={14} />
+                  <span>Email</span>
+                </Space>
+              }
+            >
+              {student?.email}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <Space>
+                  <FileText size={14} />
+                  <span>Purpose</span>
+                </Space>
+              }
+            >
+              {request_note || "-"}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <Space>
+                  <FileText size={14} />
+                  <span>Status</span>
+                </Space>
+              }
+            >
+              {getStatusTag(status)}
+            </Descriptions.Item>
+          </Descriptions>
+
+          <Descriptions
+            title="Loan Timeline"
+            column={1}
+            bordered
+            size="small"
+            className="!mt-4"
+            labelStyle={{ fontWeight: 500, width: "140px" }}
+          >
+            <Descriptions.Item
+              label={
+                <Space>
+                  <Calendar size={14} />
+                  <span>Requested</span>
+                </Space>
+              }
+            >
+              {dayjs(requested_at).format("MMM D, YYYY")}
+            </Descriptions.Item>
+            <Descriptions.Item
+              label={
+                <Space>
+                  <Calendar size={14} />
+                  <span>Expected Return</span>
+                </Space>
+              }
+            >
+              {dayjs(expected_return_at).format("MMM D, YYYY")}
+            </Descriptions.Item>
 
             {approved_at && (
-              <>
-                <Text strong>Disetujui pada:</Text>
-                <Paragraph>
-                  {dayjs(approved_at).format("DD MMM YYYY, HH:mm")}
-                </Paragraph>
-                <Text strong>Disetujui oleh:</Text>
-                <Paragraph>{approved_by.name || "-"}</Paragraph>
-              </>
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <CheckCircle size={14} />
+                    <span>Approved</span>
+                  </Space>
+                }
+              >
+                {dayjs(approved_at).format("MMM D, YYYY, HH:mm")}
+                {approved_by && (
+                  <div className="text-xs text-gray-500">
+                    by {approved_by.name}
+                  </div>
+                )}
+              </Descriptions.Item>
             )}
 
             {rejected_at && (
-              <>
-                <Text strong>Ditolak pada:</Text>
-                <Paragraph>
-                  {dayjs(rejected_at).format("DD MMM YYYY, HH:mm")}
-                </Paragraph>
-                <Text strong>Ditolak oleh:</Text>
-                <Paragraph>{rejected_by || "-"}</Paragraph>
-                <Text strong>Alasan Penolakan:</Text>
-                <Paragraph>{rejection_notice || "-"}</Paragraph>
-              </>
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <XCircle size={14} />
+                    <span>Rejected</span>
+                  </Space>
+                }
+              >
+                {dayjs(rejected_at).format("MMM D, YYYY, HH:mm")}
+                {rejected_by && (
+                  <div className="text-xs text-gray-500">by {rejected_by}</div>
+                )}
+              </Descriptions.Item>
             )}
 
             {returned_at && (
-              <>
-                <Text strong>Dikembalikan pada:</Text>
-                <Paragraph>
-                  {dayjs(returned_at).format("DD MMM YYYY, HH:mm")}
-                </Paragraph>
-                <Text strong>Catatan Pengembalian:</Text>
-                <Paragraph>{return_note || "-"}</Paragraph>
-              </>
+              <Descriptions.Item
+                label={
+                  <Space>
+                    <RotateCcw size={14} />
+                    <span>Returned</span>
+                  </Space>
+                }
+              >
+                {dayjs(returned_at).format("MMM D, YYYY, HH:mm")}
+              </Descriptions.Item>
             )}
-          </>
-        )}
-      </Modal>
-    </>
+          </Descriptions>
+
+          {/* Additional Notes Section */}
+          {(rejection_notice || return_note) && (
+            <div className="mt-4">
+              {rejection_notice && (
+                <div className="bg-red-50 p-3 rounded-md border border-red-200 mb-3">
+                  <Text
+                    strong
+                    className="text-red-600 flex items-center gap-2 mb-1"
+                  >
+                    <AlertCircle size={14} />
+                    Rejection Reason
+                  </Text>
+                  <Text className="text-red-700">{rejection_notice}</Text>
+                </div>
+              )}
+
+              {return_note && (
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                  <Text
+                    strong
+                    className="text-blue-600 flex items-center gap-2 mb-1"
+                  >
+                    <FileText size={14} />
+                    Return Notes
+                  </Text>
+                  <Text className="text-blue-700">{return_note}</Text>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }

@@ -2,13 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/authContext";
-import { Table, Input, Typography, Card, DatePicker, Select } from "antd";
+import {
+  Table,
+  Input,
+  Typography,
+  Card,
+  DatePicker,
+  Select,
+  Button,
+  message,
+} from "antd";
 import { Search } from "lucide-react";
 import Link from "next/link";
-import { GetLoans, GetLoansHistory } from "@/lib/handler/api/loansHandler";
+import {
+  ApproveLoan,
+  GetLoans,
+  GetLoansHistory,
+  RejectLoan,
+  ReturnLoan,
+} from "@/lib/handler/api/loansHandler";
 // import "@ant-design/v5-patch-for-react-19";
 import { getStatusTag } from "@/lib/helper/getStatusTag";
 import dayjs from "dayjs";
+import LoanRequestDetailModal from "@/components/LoanRequestDetailModal";
+import LoanRejectModal from "@/components/LoanRejectModal";
+import LoanReturnModal from "@/components/LoanReturnModal";
+import { useRouter } from "next/navigation";
 
 // import { history, getItemById, getUserById } from "@/dummy-data";
 
@@ -17,12 +36,18 @@ const { RangePicker } = DatePicker;
 
 export default function HistoryPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState();
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [isRequestDetailModalVisible, setIsRequestDetailModalVisible] =
+    useState(false);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [dateRange, setDateRange] = useState<any>(null);
   const [histories, setHistories] = useState<any>([]);
 
@@ -33,7 +58,7 @@ export default function HistoryPage() {
   const fetchLoanHistory = async () => {
     setIsLoading(true);
     try {
-      const response = await GetLoansHistory(page, limit, {
+      const response = await GetLoans(page, limit, {
         status: status || undefined,
         name: searchText || undefined,
         startDate: dateRange?.[0]?.toDate(),
@@ -42,6 +67,62 @@ export default function HistoryPage() {
       if (response.success) {
         setHistories(response.data);
         setTotal(response.count);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    setIsLoading(true);
+    try {
+      const response = await ApproveLoan({
+        itemId: selectedItem.item_id,
+      });
+      if (response.success) {
+        message.success("Loan approved successfully");
+        setIsLoading(false);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReject = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await RejectLoan({
+        itemId: selectedItem.item_id,
+        rejectionNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan rejected successfully");
+        setIsRejectModalVisible(false);
+        router.refresh();
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReturn = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await ReturnLoan({
+        itemId: selectedItem.item_id,
+        returnNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan returned successfully");
+        setIsRejectModalVisible(false);
+        router.refresh();
       }
     } catch (error) {
       console.error(error);
@@ -86,16 +167,29 @@ export default function HistoryPage() {
     },
     {
       title: "Action",
-      dataIndex: "id",
+      dataIndex: "item_id",
       key: "notes",
       render: (record: any) => {
-        return <Link href={`/dashboard/items/${record}`}>Details</Link>;
+        const item = histories.find((item: any) => item.item_id === record);
+        return (
+          <Button
+            type="link"
+            onClick={() => {
+              console.log(item);
+              setSelectedItem(item);
+              setIsRequestDetailModalVisible(true);
+            }}
+          >
+            Details
+          </Button>
+        );
       },
     },
   ];
 
   return (
     <div className="space-y-6">
+      <p onClick={() => console.log(histories)}>asdasd</p>
       <div>
         <Title level={4}>Borrowing History</Title>
         <p className="text-gray-500">View the history of equipment borrowing</p>
@@ -125,6 +219,7 @@ export default function HistoryPage() {
           </Select>
 
           <RangePicker
+            disabled
             onChange={(dates) => setDateRange(dates)}
             placeholder={["Start Date", "End Date"]}
           />
@@ -141,10 +236,48 @@ export default function HistoryPage() {
               setLimit(pageSize);
             },
             total: total,
-            defaultPageSize: 20,
+            defaultPageSize: 10,
           }}
         />
       </Card>
+
+      <LoanRequestDetailModal
+        open={isRequestDetailModalVisible}
+        onClose={(status: "reject" | "accept" | "return") => {
+          if (status === "reject") {
+            setIsRejectModalVisible(true);
+          } else if (status === "accept") {
+            handleApprove();
+          } else if (status === "return") {
+            setIsReturnModalVisible(true);
+          }
+
+          setIsRequestDetailModalVisible(false);
+        }}
+        item={selectedItem}
+      />
+
+      <LoanRejectModal
+        open={isRejectModalVisible}
+        onClose={(payload?: any) => {
+          setIsRejectModalVisible(false);
+          if (payload) {
+            handleReject(payload);
+          }
+        }}
+        item={selectedItem}
+      />
+
+      <LoanReturnModal
+        open={isReturnModalVisible}
+        onClose={(payload?: any) => {
+          setIsReturnModalVisible(false);
+          if (payload) {
+            handleReturn(payload);
+          }
+        }}
+        item={selectedItem}
+      />
     </div>
   );
 }

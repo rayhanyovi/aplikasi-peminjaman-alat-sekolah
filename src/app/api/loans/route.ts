@@ -11,9 +11,17 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const status = url.searchParams.get("status");
     const validStatuses = ["pending", "approved", "rejected", "returned"];
+    const pageParam = url.searchParams.get("page") || "1";
+    const limitParam = url.searchParams.get("limit") || "10";
 
-    let query = supabaseAdmin.from("loans").select(
-      `
+    const page = parseInt(pageParam, 10);
+    const limit = parseInt(limitParam, 10);
+    const offset = (page - 1) * limit;
+
+    let query = supabaseAdmin
+      .from("loans")
+      .select(
+        `
         id, 
         item_id, 
         student_id, 
@@ -30,10 +38,12 @@ export async function GET(req: Request) {
         return_note,
         items:item_id (name, code, image),
         profiles:student_id (*),
-        approved_profiles:approved_by (name, role)  -- Ambil data dari profiles berdasarkan approved_by
+        approved_profiles:approved_by (name, role)
       `,
-      { count: "exact" }
-    );
+        { count: "exact" }
+      )
+      .range(offset, offset + limit - 1)
+      .order("last_activity_at", { ascending: true });
 
     if (status) {
       const statuses = status.split(",");
@@ -76,10 +86,13 @@ export async function GET(req: Request) {
       };
     });
 
+    const totalCount = count ?? 0;
+
     return NextResponse.json<ApiResponse<RequestLoanItemType[]>>(
       {
         success: true,
         message: "Loans retrieved successfully",
+        count: totalCount,
         data: loansWithStudent,
       },
       { status: 200 }

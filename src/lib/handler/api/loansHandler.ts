@@ -15,10 +15,10 @@ export const GetLoans = async (
       params.append("name", filter.name);
     }
     if (filter.startDate) {
-      params.append("start", filter.startDate.toISOString());
+      params.append("startDate", filter.startDate.toISOString());
     }
     if (filter.endDate) {
-      params.append("start", filter.endDate.toISOString());
+      params.append("endDate", filter.endDate.toISOString());
     }
   }
   params.append("page", page.toString());
