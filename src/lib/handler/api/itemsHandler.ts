@@ -37,3 +37,18 @@ export const AddNewItem = async (item: any) => {
   });
   return response.json();
 };
+
+export const UpdateItem = async (id: string, item: any) => {
+  const response = await fetch(`/api/items/update`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id,
+      ...item,
+    }),
+    credentials: "include",
+  });
+  return response.json();
+};

@@ -65,9 +65,8 @@ export default function AddItemModal({ open, onClose }: any) {
           status: "available",
         }}
       >
+        <ImageUploader size={288} onSuccess={(file) => setImageFile(file)} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ImageUploader onSuccess={(file) => setImageFile(file)} />
-
           <Form.Item
             name="name"
             label="Equipment Name"

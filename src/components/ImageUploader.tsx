@@ -1,22 +1,43 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload, message } from "antd";
 import { LoadingOutlined, PlusOutlined } from "@ant-design/icons";
 import type { UploadProps, UploadFile } from "antd";
 
 interface ImageUploaderProps {
-  onSuccess?: (file: File) => void; // Ubah dari string ke File
-  maxSizeMB?: number; // Add option to specify max size
+  onSuccess?: (file: File) => void;
+  maxSizeMB?: number;
+  existedFileList?: UploadFile[];
+  size?: number | string;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
   onSuccess,
+  existedFileList,
   maxSizeMB = 2,
+  size = 160,
 }) => {
   const [uploading, setUploading] = useState(false);
-  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [fileList, setFileList] = useState<UploadFile[]>(existedFileList ?? []);
+
+  useEffect(() => {
+    const thumbnail = document.querySelector(
+      ".customSizedUpload .ant-upload"
+    ) as HTMLElement | null;
+
+    const uploadComponent = document.querySelector(
+      ".customSizedUpload .ant-upload-list-item-container"
+    ) as HTMLElement | null;
+
+    if (size && thumbnail && uploadComponent) {
+      uploadComponent.style.setProperty("width", `${size}px`, "important");
+      uploadComponent.style.setProperty("height", `${size}px`, "important");
+      thumbnail.style.setProperty("width", `${size}px`, "important");
+      thumbnail.style.setProperty("height", `${size}px`, "important");
+    }
+  }, [fileList, size]);
 
   const customRequest = async (options: any) => {
     const { file, onSuccess: onAntdSuccess, onError } = options;
@@ -97,18 +118,24 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
     },
     accept: "image/*",
     listType: "picture-card",
-    maxCount: 1, // Jika Anda hanya ingin mengupload satu file
+    maxCount: 1,
   };
 
   const uploadButton = (
-    <div>
-      {uploading ? <LoadingOutlined /> : <PlusOutlined />}
-      <div style={{ marginTop: 8 }}>Upload</div>
+    <div className="w-full h-full flex flex-col items-center justify-center border border-dashed border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100">
+      {uploading ? (
+        <LoadingOutlined style={{ fontSize: 24 }} />
+      ) : (
+        <PlusOutlined style={{ fontSize: 24 }} />
+      )}
+      <div className="mt-2 text-sm text-gray-600">Upload</div>
     </div>
   );
 
   return (
-    <Upload {...props}>{fileList.length >= 1 ? null : uploadButton}</Upload>
+    <Upload className="customSizedUpload" {...props}>
+      {fileList.length >= 1 ? null : uploadButton}
+    </Upload>
   );
 };
 
