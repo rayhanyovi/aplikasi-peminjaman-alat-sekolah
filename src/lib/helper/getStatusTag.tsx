@@ -1,20 +1,20 @@
 import { Tag } from "antd";
 
-export const getStatusTag = (status: string) => {
-  switch (status) {
-    case "tersedia":
-      return <Tag color="green">Available</Tag>;
-    case "pending":
-      return <Tag color="orange">Pending</Tag>;
-    case "dipinjam":
-      return <Tag color="blue">Borrowed</Tag>;
-    case "approved":
-      return <Tag color="green">Approved</Tag>;
-    case "rejected":
-      return <Tag color="red">Rejected</Tag>;
-    case "returned":
-      return <Tag color="cyan">Returned</Tag>;
-    default:
-      return <Tag>{status}</Tag>;
-  }
+export const getStatusTag = (status: string, tagProps = {}) => {
+  const statusMap: Record<string, { color: string; label: string }> = {
+    tersedia: { color: "green", label: "Available" },
+    pending: { color: "orange", label: "Pending" },
+    dipinjam: { color: "blue", label: "Borrowed" },
+    approved: { color: "green", label: "Approved" },
+    rejected: { color: "red", label: "Rejected" },
+    returned: { color: "cyan", label: "Returned" },
+  };
+
+  const current = statusMap[status];
+
+  return (
+    <Tag color={current?.color} {...tagProps}>
+      {current?.label ?? status}
+    </Tag>
+  );
 };

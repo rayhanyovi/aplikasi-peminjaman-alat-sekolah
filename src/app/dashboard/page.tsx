@@ -20,19 +20,32 @@ import { useDashboard } from "@/context/dashboardContext";
 import { Suspense, useEffect, useState } from "react";
 import DashboardLoading from "./loading";
 import { getStatusTag } from "@/lib/helper/getStatusTag";
-import { GetLoans } from "@/lib/handler/api/loansHandler";
+import {
+  ApproveLoan,
+  GetLoans,
+  RejectLoan,
+  ReturnLoan,
+} from "@/lib/handler/api/loansHandler";
 import { RequestLoanItemType } from "@/types/requestTypes";
 import { GetItems } from "@/lib/handler/api/itemsHandler";
-import { Item } from "@/types/api";
+import { Item, LoanRequest } from "@/types/api";
+import LoanRequestDetailModal from "@/components/LoanRequestDetailModal";
+import LoanRejectModal from "@/components/LoanRejectModal";
+import LoanReturnModal from "@/components/LoanReturnModal";
 
 const { Title } = Typography;
 
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingRequests, setPendingRequests] = useState<
-    RequestLoanItemType[] | []
-  >([]); // Correct type here
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  const [isRequestDetailModalVisible, setIsRequestDetailModalVisible] =
+    useState(false);
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [isReturnModalVisible, setIsReturnModalVisible] = useState(false);
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
+  const [borrowedItems, setBorrowedItems] = useState<any[]>([]);
   const { user, isLoading: authContextLoading } = useAuth();
   const {
     totalUsers,
@@ -50,6 +63,7 @@ export default function DashboardPage() {
   useEffect(() => {
     GetRequestPendingItems();
     GetAvailableItems();
+    GetBorrowedItems();
   }, []);
 
   const GetRequestPendingItems = async () => {
@@ -67,14 +81,70 @@ export default function DashboardPage() {
       .catch((e) => message.error(e))
       .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
   };
-  const pendingItems = items.filter((item) => item.status === "pending");
-  const borrowedItems = items.filter((item) => item.status === "borrowed");
 
-  // Get student's requests if user is a student
-  const studentRequests =
-    user?.role === "student"
-      ? requests.filter((req) => req.userId === user.id)
-      : [];
+  const GetBorrowedItems = async () => {
+    setIsLoading(true);
+    await GetLoans(1, 5, { status: "approved" })
+      .then((v) => setBorrowedItems(v.data)) // Ensure the response is the correct type
+      .catch((e) => message.error(e))
+      .finally(() => setIsLoading(false)); // Fix to set loading state to false when done
+  };
+
+  const handleApprove = async () => {
+    setIsLoading(true);
+    try {
+      const response = await ApproveLoan({
+        itemId: selectedItem.item_id,
+      });
+      if (response.success) {
+        message.success("Loan approved successfully");
+        setIsLoading(false);
+        pendingRequests.splice(pendingRequests.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReject = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await RejectLoan({
+        itemId: selectedItem.item_id,
+        rejectionNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan rejected successfully");
+        setIsRejectModalVisible(false);
+        pendingRequests.splice(pendingRequests.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReturn = async (values: any) => {
+    setIsLoading(true);
+    try {
+      const response = await ReturnLoan({
+        itemId: selectedItem.item_id,
+        returnNote: values.payload,
+      });
+      if (response.success) {
+        message.success("Loan returned successfully");
+        setIsRejectModalVisible(false);
+        borrowedItems.splice(borrowedItems.indexOf(selectedItem), 1);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (isLoading) {
     return <DashboardLoading />;
@@ -109,6 +179,7 @@ export default function DashboardPage() {
             />
           </Card>
         </Col>
+
         <Col xs={24} sm={12} lg={6}>
           <Card variant="borderless" className="w-full">
             <Statistic
@@ -132,121 +203,21 @@ export default function DashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]}>
-        {/* For Admin and Superadmin: Pending Requests */}
-        {(user?.role === "admin" || user?.role === "superadmin") && (
-          <Col xs={24} lg={12}>
-            <Card
-              title={
-                <div className="flex items-center">
-                  <ClipboardList className="mr-2" size={16} />
-                  <span>Pending Requests</span>
-                </div>
-              }
-              extra={
-                <Link href="/dashboard/requests">
-                  <Button type="link" size="small">
-                    View All
-                  </Button>
-                </Link>
-              }
-              variant="borderless"
-            >
-              {pendingRequests.length > 0 ? (
-                <List
-                  dataSource={pendingRequests}
-                  renderItem={(request: RequestLoanItemType) => {
-                    return (
-                      <List.Item
-                        actions={[
-                          <Link
-                            key="view"
-                            href={`/dashboard/requests/${request.id}`}
-                          >
-                            <Button type="link" size="small">
-                              Review
-                            </Button>
-                          </Link>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          title={request.items.name || "Unknown Item"}
-                          description={
-                            <div>
-                              <div>Requested by: {request.student.name}</div>
-                              <div>Date: {request.requested_at}</div>
-                            </div>
-                          }
-                        />
-                        {getStatusTag(request.status)}
-                      </List.Item>
-                    );
-                  }}
-                  locale={{ emptyText: "No pending requests" }}
-                />
-              ) : (
-                <p>Tidak ada Item</p> // Display the message when empty
-              )}
-            </Card>
-          </Col>
-        )}
-
-        {/* For Students: My Requests */}
-        {user?.role === "student" && (
-          <Col xs={24} lg={12}>
-            <Card
-              title={
-                <div className="flex items-center">
-                  <ClipboardList className="mr-2" size={16} />
-                  <span>My Requests</span>
-                </div>
-              }
-              extra={
-                <Link href="/dashboard/requests">
-                  <Button type="link" size="small">
-                    View All
-                  </Button>
-                </Link>
-              }
-              variant="borderless"
-            >
-              <List
-                dataSource={studentRequests.slice(0, 5)}
-                renderItem={(request) => {
-                  const item = items.find((i) => i.id === request.itemId);
-                  return (
-                    <List.Item>
-                      <List.Item.Meta
-                        title={item?.name || "Unknown Item"}
-                        description={
-                          <div>
-                            <div>Requested on: {request.requestDate}</div>
-                            {request.dueDate && (
-                              <div>Due date: {request.dueDate}</div>
-                            )}
-                          </div>
-                        }
-                      />
-                      {getStatusTag(request.status)}
-                    </List.Item>
-                  );
-                }}
-                locale={{ emptyText: "No requests found" }}
-              />
-            </Card>
-          </Col>
-        )}
-
-        {/* Available Equipment */}
+        {/* {user?.role === "siswa" && ( */}
         <Col xs={24} lg={12}>
           <Card
             title={
               <div className="flex items-center">
-                <Package className="mr-2" size={16} />
-                <span>Available Equipment</span>
+                <ClipboardList className="mr-2" size={16} />
+                <span onClick={() => console.log(pendingRequests)}>
+                  {user?.role === "admin" || user?.role === "superadmin"
+                    ? "Pending Requests"
+                    : "My Requests"}
+                </span>
               </div>
             }
             extra={
-              <Link href="/dashboard/items">
+              <Link href="/dashboard/requests">
                 <Button type="link" size="small">
                   View All
                 </Button>
@@ -254,45 +225,156 @@ export default function DashboardPage() {
             }
             variant="borderless"
           >
-            <List
-              dataSource={availableItems.slice(0, 5)}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    user?.role === "student" ? (
-                      <Link key="borrow" href={`/dashboard/items/${item.id}`}>
-                        <Button type="link" size="small">
-                          Borrow
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link key="view" href={`/dashboard/items/${item.id}`}>
-                        <Button type="link" size="small">
-                          View
-                        </Button>
-                      </Link>
-                    ),
-                  ]}
+            {pendingRequests && pendingRequests.length > 0 ? (
+              pendingRequests.map((item, idx) => (
+                <div
+                  key={idx}
+                  className={`items-stretch ${
+                    idx === 0 ? "" : "border-t"
+                  } border-gray-500/20 p-4 flex justify-between`}
                 >
-                  <List.Item.Meta
-                    title={item.name}
-                    description={
+                  <div className="flex-1">
+                    <p className="font-bold">{item.items.name}</p>
+                    <div className="text-sm text-gray-600 mt-1">
                       <div>
-                        <div>
-                          Last Updated:{" "}
-                          {dayjs(item.updated_at).format("dddd, DD MMMM YYYY")}
-                        </div>
-                        <div>Serial: {item.code}</div>
+                        Approved At:{" "}
+                        {dayjs(item.appvoed_at).format("dddd, DD MMMM YYYY")}
                       </div>
-                    }
-                  />
-                  {getStatusTag(item.status)}
-                </List.Item>
-              )}
-              locale={{ emptyText: "No available equipment" }}
-            />
+                      <div>Serial: {item.items.code}</div>
+                      <p>Borrowed by: {item.student.name}</p>
+
+                      {getStatusTag(item.status, { className: "!mt-3" })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end justify-between ml-4">
+                    <Button
+                      type="link"
+                      size="small"
+                      className="mt-2"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setIsRequestDetailModalVisible(true);
+                      }}
+                    >
+                      Lihat Detail
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-48 flex flex-col items-center justify-center">
+                <p>Tidak ada barang yang sedang dipinjam</p>
+              </div>
+            )}
           </Card>
         </Col>
+        {/* )} */}
+
+        <Col xs={24} lg={12}>
+          <Card
+            title={
+              <div className="flex items-center">
+                <Package className="mr-2" size={16} />
+                <span>Borrowed Equipment</span>
+              </div>
+            }
+            extra={
+              <Link href="/dashboard/requests">
+                <Button type="link" size="small">
+                  View All
+                </Button>
+              </Link>
+            }
+            variant="borderless"
+          >
+            <div className="space-y-4">
+              {borrowedItems.length > 0 ? (
+                borrowedItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`items-stretch ${
+                      idx === 0 ? "" : "border-t"
+                    } border-gray-500/20 p-4 flex justify-between`}
+                  >
+                    <div className="flex-1">
+                      <p className="font-semibold">{item.items.name}</p>
+                      <div className="text-sm text-gray-400 mt-1">
+                        <div>
+                          Approved At:
+                          {dayjs(item.appvoed_at).format("dddd, DD MMMM YYYY")}
+                        </div>
+                        <div>Serial: {item.items.code}</div>
+                        <p>Borrowed by: {item.student.name}</p>
+                        {getStatusTag(
+                          item.status === "approved" ? "dipinjam" : "",
+                          { className: "!mt-3" }
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-between items-end">
+                      <Button
+                        type="link"
+                        size="small"
+                        className="mt-2"
+                        onClick={() => {
+                          setSelectedItem(item);
+                          setIsRequestDetailModalVisible(true);
+                        }}
+                      >
+                        Lihat Detail
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="h-48 flex flex-col items-center justify-center">
+                  <p>Tidak ada barang yang sedang dipinjam</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <LoanRequestDetailModal
+            open={isRequestDetailModalVisible}
+            onClose={(status: string) => {
+              if (status === "reject") {
+                setIsRejectModalVisible(true);
+              } else if (status === "accept") {
+                handleApprove();
+              } else if (status === "return") {
+                setIsReturnModalVisible(true);
+              }
+
+              setIsRequestDetailModalVisible(false);
+            }}
+            item={selectedItem}
+          />
+
+          <LoanRejectModal
+            open={isRejectModalVisible}
+            onClose={(payload?: any) => {
+              setIsRejectModalVisible(false);
+              if (payload) {
+                handleReject(payload);
+              }
+            }}
+            item={selectedItem}
+          />
+
+          <LoanReturnModal
+            open={isRejectModalVisible}
+            onClose={(payload?: any) => {
+              setIsReturnModalVisible(false);
+              if (payload) {
+                handleReturn(payload);
+              }
+            }}
+            item={selectedItem}
+          />
+        </Col>
+        {/* )} */}
       </Row>
     </div>
   );
