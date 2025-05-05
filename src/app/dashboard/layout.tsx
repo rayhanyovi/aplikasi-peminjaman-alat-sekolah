@@ -14,6 +14,7 @@ import {
   Spin,
   theme,
   Drawer,
+  Divider,
 } from "antd";
 import {
   Home,
@@ -169,15 +170,16 @@ export default function DashboardLayout({
             zIndex: 50, // make sure it's above content
           }}
         >
-          <div className="p-4 h-16 flex items-center justify-center">
-            <h1
+          <div className=" h-fit flex flex-col gap-0 items-center justify-left py-1">
+            <p
               className={`text-xl font-bold ${collapsed ? "hidden" : "block"}`}
             >
               SPAS
-            </h1>
-            <p>Sistem Peminjaman Alat Sekolah</p>
+            </p>
+            <p className="whitespace-pre-line text-center">{`Sistem Peminjaman \n Alat Sekolah`}</p>
             {collapsed && <Package size={24} />}
           </div>
+          <Divider className="!my-2" />
           <Menu
             theme="light"
             mode="inline"
