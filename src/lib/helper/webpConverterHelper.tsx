@@ -2,16 +2,28 @@ import imageCompression from "browser-image-compression";
 
 export const WebpImageConverter = async (file: File) => {
   try {
+    const maxSizeKB = 5;
     const options = {
-      maxSizeMB: 0.3, // Reduce max size from 0.5MB to 0.3MB
+      maxSizeMB: maxSizeKB / 1024, // Convert to MB
       useWebWorker: true,
       fileType: "image/webp",
-      maxIteration: 20,
-      maxWidthOrHeight: 800, // Add max dimension to further reduce size
-      initialQuality: 0.7, // Add initial quality setting
+      maxIteration: 30,
+      maxWidthOrHeight: 300, // Reduce dimensions aggressively
+      initialQuality: 0.4, // Start low
     };
 
     const compressedFile = await imageCompression(file, options);
+
+    // Check actual size
+    const finalSizeKB = compressedFile.size / 1024;
+
+    if (finalSizeKB > maxSizeKB) {
+      throw new Error(
+        `[WebpImageConverter] Compression failed to meet size target: ${finalSizeKB.toFixed(
+          2
+        )}KB`
+      );
+    }
 
     const newFormData = new FormData();
     newFormData.append("file", compressedFile, compressedFile.name);
